@@ -80,7 +80,7 @@ export async function insertNoteToLastCommand(app: App) {
     }
 
     const selectedNote = await new Promise<TFile | null>((resolve) => {
-        new NextNoteSuggestModal(app, app.vault.getMarkdownFiles(), resolve).open();
+        new NextNoteSuggestModal(app, getSortedMarkdownFiles(app), resolve).open();
     });
 
     if (!selectedNote) {
@@ -106,7 +106,7 @@ export async function insertNoteCommand(app: App) {
     // 1. Select target note
     const selectedNote = await new Promise<TFile | null>((resolve) => {
         // Show all markdown files
-        new NextNoteSuggestModal(app, app.vault.getMarkdownFiles(), resolve).open();
+        new NextNoteSuggestModal(app, getSortedMarkdownFiles(app), resolve).open();
     });
 
     if (!selectedNote) {
@@ -136,7 +136,7 @@ export async function insertNoteToFirstCommand(app: App) {
 
     // 1. Select target note
     const selectedNote = await new Promise<TFile | null>((resolve) => {
-        new NextNoteSuggestModal(app, app.vault.getMarkdownFiles(), resolve).open();
+        new NextNoteSuggestModal(app, getSortedMarkdownFiles(app), resolve).open();
     });
 
     if (!selectedNote) {
@@ -155,5 +155,28 @@ export async function insertNoteToFirstCommand(app: App) {
     // 5. Update current note to point to ROOT
     await app.fileManager.processFrontMatter(file, (fm) => {
         fm.previous = "ROOT";
+    });
+}
+
+function getSortedMarkdownFiles(app: App): TFile[] {
+    const files = app.vault.getMarkdownFiles();
+    const lastOpenFiles = app.workspace.getLastOpenFiles();
+
+    // Create a map for fast lookup of order (lower index = more recent)
+    const orderMap = new Map<string, number>();
+    lastOpenFiles.forEach((path, index) => {
+        orderMap.set(path, index);
+    });
+
+    return files.sort((a, b) => {
+        const orderA = orderMap.has(a.path) ? orderMap.get(a.path)! : Number.MAX_SAFE_INTEGER;
+        const orderB = orderMap.has(b.path) ? orderMap.get(b.path)! : Number.MAX_SAFE_INTEGER;
+
+        if (orderA !== orderB) {
+            return orderA - orderB;
+        }
+
+        // Fallback to alphabetical order for files not in history
+        return a.basename.localeCompare(b.basename);
     });
 }
