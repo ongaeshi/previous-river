@@ -11,7 +11,7 @@ export class NextNoteSuggestModal extends SuggestModal<TFile> {
   }
 
   renderSuggestion(file: TFile, el: HTMLElement) {
-    el.createEl("div", { text: file.path });
+    el.createEl("div", { text: file.path.endsWith(".md") ? file.path.slice(0, -3) : file.path });
   }
 
   onChooseSuggestion(file: TFile, evt: MouseEvent | KeyboardEvent) {
