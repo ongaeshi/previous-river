@@ -1,4 +1,4 @@
-import { App, TFile } from "obsidian";
+import { App, TFile, Notice } from "obsidian";
 import { NextNoteSuggestModal } from "./NextNoteSuggestModal";
 import { getActiveFile, getPreviousNote, getNextNotes, detachNote, setPreviousProperty, findLastNote, findFirstNote } from "./obsidian";
 
@@ -95,6 +95,7 @@ export async function insertNoteToLastCommand(app: App) {
     }
 
     await setPreviousProperty(app, file, lastNote.basename);
+    new Notice(`Inserted note to last: ${lastNote.basename}`);
 }
 
 export async function insertNoteCommand(app: App) {
@@ -126,6 +127,7 @@ export async function insertNoteCommand(app: App) {
     for (const successor of successors) {
         await setPreviousProperty(app, successor, file.basename);
     }
+    new Notice(`Inserted note: ${selectedNote.basename}`);
 }
 
 export async function insertNoteToFirstCommand(app: App) {
@@ -156,6 +158,7 @@ export async function insertNoteToFirstCommand(app: App) {
     await app.fileManager.processFrontMatter(file, (fm) => {
         fm.previous = "ROOT";
     });
+    new Notice(`Inserted note before ${firstNote.basename}`);
 }
 
 function getSortedMarkdownFiles(app: App): TFile[] {
