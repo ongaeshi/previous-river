@@ -4,15 +4,18 @@
 		"check": "npx tsc --noEmit",
 		"build": "esbuild main.ts --bundle --outdir=build --external:obsidian --format=cjs --target=es2020 --platform=node && npm run copy",
 		"copy": "powershell -Command \"New-Item -ItemType Directory -Force -Path tests\\vault\\previous-river-test\\.obsidian\\plugins\\previous-river | Out-Null; Copy-Item -Path build\\main.js, manifest.json -Destination tests\\vault\\previous-river-test\\.obsidian\\plugins\\previous-river -Force\"",
-		"copy-to-notes": "powershell -Command \"New-Item -ItemType Directory -Force -Path $env:USERPROFILE\\Doc\\notes\\.obsidian\\plugins\\previous-river | Out-Null; Copy-Item -Path build\\main.js, manifest.json -Destination $env:USERPROFILE\\Doc\\notes\\.obsidian\\plugins\\previous-river\\ -Force\""
+		"copy-to-notes": "powershell -Command \"New-Item -ItemType Directory -Force -Path $env:USERPROFILE\\Doc\\notes\\.obsidian\\plugins\\previous-river | Out-Null; Copy-Item -Path build\\main.js, manifest.json -Destination $env:USERPROFILE\\Doc\\notes\\.obsidian\\plugins\\previous-river\\ -Force\"",
+		"zip": "node zip-release.mjs"
 	},
 	"keywords": [],
 	"author": "",
 	"license": "MIT",
 	"devDependencies": {
+		"@types/archiver": "^7.0.0",
 		"@types/node": "^16.11.6",
 		"@typescript-eslint/eslint-plugin": "5.29.0",
 		"@typescript-eslint/parser": "5.29.0",
+		"archiver": "^7.0.1",
 		"builtin-modules": "3.3.0",
 		"esbuild": "0.17.3",
 		"obsidian": "latest",
