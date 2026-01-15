@@ -7,11 +7,11 @@ export class NextNoteSuggestModal extends SuggestModal<TFile> {
 
   getSuggestions(query: string): TFile[] {
     // query に部分一致するものだけ返す（簡易絞り込み）
-    return this.options.filter(file => file.basename.toLowerCase().includes(query.toLowerCase()));
+    return this.options.filter(file => file.path.toLowerCase().includes(query.toLowerCase()));
   }
 
   renderSuggestion(file: TFile, el: HTMLElement) {
-    el.createEl("div", { text: file.basename });
+    el.createEl("div", { text: file.path });
   }
 
   onChooseSuggestion(file: TFile, evt: MouseEvent | KeyboardEvent) {
