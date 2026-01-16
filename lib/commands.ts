@@ -134,7 +134,11 @@ export async function insertNoteCommand(app: App) {
     for (const successor of successors) {
         await setPreviousProperty(app, successor, file.basename);
     }
-    new Notice(`Inserted note: ${selectedNote.basename}`);
+    if (successors.length > 0) {
+        new Notice(`Inserted note between ${selectedNote.basename} and ${successors[0].basename}`);
+    } else {
+        new Notice(`Inserted note after ${selectedNote.basename}`);
+    }
 }
 
 export async function insertNoteToFirstCommand(app: App) {
