@@ -1,4 +1,5 @@
 import { App, TFile, Notice } from "obsidian";
+import { ConfirmModal } from "./ConfirmModal";
 import { NextNoteSuggestModal } from "./NextNoteSuggestModal";
 import { getActiveFile, getPreviousNote, getNextNotes, detachNote, setPreviousProperty, findLastNote, findFirstNote } from "./obsidian";
 
@@ -69,8 +70,14 @@ export async function detachNoteCommand(app: App) {
         return;
     }
 
-    // TODO: Add confirm dialog
-    await detachNote(app, file, { showNotification: true });
+    new ConfirmModal(
+        app,
+        "Detach Note",
+        `Are you sure you want to detach "${file.basename}" from the chain?`,
+        async () => {
+            await detachNote(app, file, { showNotification: true });
+        }
+    ).open();
 }
 
 export async function insertNoteToLastCommand(app: App) {
