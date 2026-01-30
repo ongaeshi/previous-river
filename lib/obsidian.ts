@@ -34,25 +34,43 @@ export function isDailyNote(fileBasename: string): boolean {
 	return moment(fileBasename, "DD-MM-YY", true).isValid();
 }
 
-// TODO use metadata cache approach instead of this linear scan with limit approach
-export function getPreviousDailyNote(file: TFile): TFile | null {
-	// new Notice(`get previous daily note for note "${file.name} function to be implemented"`);
+// TODO use metadata cache approach instead of this linear scan with limit approach,
+// TODO refactor the following 2 functions into sth like findAdjDailyNote with direction para
+export function getPreviousDailyNote(app: App, file: TFile): TFile | null {
 	const format = "DD-MM-YY";
 	const maxDaysToSearch = 365;
 	let searchDate = moment(file.basename, format).subtract(1, "days");
 	const currentFilePath = file?.path || "";
 
 	for (let i = 0; i < maxDaysToSearch; i++) {
-		const target = this.app.metadataCache.getFirstLinkpathDest(
+		const target = app.metadataCache.getFirstLinkpathDest(
 			searchDate.format(format),
 			currentFilePath,
-		); //? get app from injection or this.app? diff?
+		);
 		if (target != null) {
 			return target;
 		}
 		searchDate.subtract(1, "days");
 	}
+	return null;
+}
 
+export function getNextDailyNote(app: App, file: TFile): TFile | null {
+	const format = "DD-MM-YY";
+	const maxDaysToSearch = 365;
+	let searchDate = moment(file.basename, format).add(1, "days");
+	const currentFilePath = file?.path || "";
+
+	for (let i = 0; i < maxDaysToSearch; i++) {
+		const target = app.metadataCache.getFirstLinkpathDest(
+			searchDate.format(format),
+			currentFilePath,
+		);
+		if (target != null) {
+			return target;
+		}
+		searchDate.add(1, "days");
+	}
 	return null;
 }
 
@@ -66,7 +84,7 @@ export function getPreviousNote(app: App, file: TFile): TFile | null {
 	if (!previousLinkpath) {
 		// check if note is daily
 		if (isDailyNote(file.basename)) {
-			return getPreviousDailyNote(file);
+			return getPreviousDailyNote(app, file);
 		}
 		// TODO feature for handling weekly note later
 		return null;
@@ -115,6 +133,14 @@ export function getNextNotes(app: App, file: TFile): TFile[] {
 			previousLinkText === currentPath
 		) {
 			nextNotes.push(targetFile);
+		}
+	}
+
+	// handle daily note implicit next notes
+	if (isDailyNote(file.basename)) {
+		const nextDailyNote = getNextDailyNote(app, file);
+		if (nextDailyNote != null && !nextNotes.includes(nextDailyNote)) {
+			nextNotes.push(nextDailyNote);
 		}
 	}
 
