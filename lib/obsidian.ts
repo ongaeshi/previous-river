@@ -2,6 +2,7 @@ import { App, TFile } from "obsidian";
 import { Notice, getLinkpath } from "obsidian";
 import { moment } from "obsidian";
 import { extractLinktext } from "./utils";
+import { MyPluginSettings } from "./settings";
 import { NextNoteSuggestModal } from "./NextNoteSuggestModal";
 
 /**
@@ -28,23 +29,29 @@ export function getPreviousLinkpath(app: App, file: TFile): string | null {
 
 /**
  * Determine if a file is daily note given it's basename
- * TODO not hardcode the date format, see how daily note/ calendar/ periodic note do it, maybe daily note has api to get it's format
  */
-export function isDailyNote(fileBasename: string): boolean {
-	return moment(fileBasename, "DD-MM-YY", true).isValid();
+export function isDailyNote(
+	fileBasename: string,
+	dailyNoteFormat: string,
+): boolean {
+	return moment(fileBasename, dailyNoteFormat, true).isValid();
 }
 
 // TODO use metadata cache approach instead of this linear scan with limit approach,
 // TODO refactor the following 2 functions into sth like findAdjDailyNote with direction para
-export function getPreviousDailyNote(app: App, file: TFile): TFile | null {
-	const format = "DD-MM-YY";
+// ? do i want to move these 2 functions to the utils.ts file?
+export function getPreviousDailyNote(
+	app: App,
+	file: TFile,
+	dailyNoteFormat: string,
+): TFile | null {
 	const maxDaysToSearch = 365;
-	let searchDate = moment(file.basename, format).subtract(1, "days");
+	let searchDate = moment(file.basename, dailyNoteFormat).subtract(1, "days");
 	const currentFilePath = file?.path || "";
 
 	for (let i = 0; i < maxDaysToSearch; i++) {
 		const target = app.metadataCache.getFirstLinkpathDest(
-			searchDate.format(format),
+			searchDate.format(dailyNoteFormat),
 			currentFilePath,
 		);
 		if (target != null) {
@@ -55,15 +62,18 @@ export function getPreviousDailyNote(app: App, file: TFile): TFile | null {
 	return null;
 }
 
-export function getNextDailyNote(app: App, file: TFile): TFile | null {
-	const format = "DD-MM-YY";
+export function getNextDailyNote(
+	app: App,
+	file: TFile,
+	dailyNoteFormat: string,
+): TFile | null {
 	const maxDaysToSearch = 365;
-	let searchDate = moment(file.basename, format).add(1, "days");
+	let searchDate = moment(file.basename, dailyNoteFormat).add(1, "days");
 	const currentFilePath = file?.path || "";
 
 	for (let i = 0; i < maxDaysToSearch; i++) {
 		const target = app.metadataCache.getFirstLinkpathDest(
-			searchDate.format(format),
+			searchDate.format(dailyNoteFormat),
 			currentFilePath,
 		);
 		if (target != null) {
@@ -77,14 +87,19 @@ export function getNextDailyNote(app: App, file: TFile): TFile | null {
 /**
  * Retrieve the previous note based on the `previous` property in the frontmatter.
  */
-// ? how to get the daily note just b4 it though? daily note has diff name format, e.g dd-MM-yy, looping O(n)?
-// let's assume the format is dd-MM-yy for now
-export function getPreviousNote(app: App, file: TFile): TFile | null {
+export function getPreviousNote(
+	app: App,
+	file: TFile,
+	settings: MyPluginSettings,
+): TFile | null {
 	const previousLinkpath = getPreviousLinkpath(app, file);
 	if (!previousLinkpath) {
-		// check if note is daily
-		if (isDailyNote(file.basename)) {
-			return getPreviousDailyNote(app, file);
+		// handle daily note nav
+		if (
+			settings.enableDailyNoteNav &&
+			isDailyNote(file.basename, settings.dailyNoteFormat)
+		) {
+			return getPreviousDailyNote(app, file, settings.dailyNoteFormat);
 		}
 		// TODO feature for handling weekly note later
 		return null;
@@ -106,7 +121,11 @@ export function getPreviousNote(app: App, file: TFile): TFile | null {
 /**
  * Retrieve notes that list the current file as their `previous` note.
  */
-export function getNextNotes(app: App, file: TFile): TFile[] {
+export function getNextNotes(
+	app: App,
+	file: TFile,
+	settings: MyPluginSettings,
+): TFile[] {
 	const currentPath = file.path;
 	const backlinks = app.metadataCache.resolvedLinks;
 	const nextNotes: TFile[] = [];
@@ -137,8 +156,15 @@ export function getNextNotes(app: App, file: TFile): TFile[] {
 	}
 
 	// handle daily note implicit next notes
-	if (isDailyNote(file.basename)) {
-		const nextDailyNote = getNextDailyNote(app, file);
+	if (
+		settings.enableDailyNoteNav &&
+		isDailyNote(file.basename, settings.dailyNoteFormat)
+	) {
+		const nextDailyNote = getNextDailyNote(
+			app,
+			file,
+			settings.dailyNoteFormat,
+		);
 		if (nextDailyNote != null && !nextNotes.includes(nextDailyNote)) {
 			nextNotes.push(nextDailyNote);
 		}
@@ -150,11 +176,12 @@ export function getNextNotes(app: App, file: TFile): TFile[] {
 export async function detachNote(
 	app: App,
 	file: TFile,
+	settings: MyPluginSettings,
 	options?: { showNotification?: boolean },
 ): Promise<void> {
 	const showNotification = options?.showNotification ?? false;
 	const previousLinkpath = getPreviousLinkpath(app, file);
-	const nextNotes = getNextNotes(app, file);
+	const nextNotes = getNextNotes(app, file, settings);
 
 	// Update next notes
 	for (const nextNote of nextNotes) {
@@ -199,10 +226,11 @@ export async function setPreviousProperty(
 export async function findLastNote(
 	app: App,
 	startNote: TFile,
+	settings: MyPluginSettings,
 ): Promise<TFile | null> {
 	let lastNote = startNote;
 	while (true) {
-		const nextNotes = getNextNotes(app, lastNote);
+		const nextNotes = getNextNotes(app, lastNote, settings);
 		if (nextNotes.length === 0 || nextNotes.includes(startNote)) {
 			break;
 		}
@@ -230,10 +258,11 @@ export async function findLastNote(
 export async function findFirstNote(
 	app: App,
 	startNote: TFile,
+	settings: MyPluginSettings,
 ): Promise<TFile> {
 	let firstNote = startNote;
 	while (true) {
-		const previousNote = getPreviousNote(app, firstNote);
+		const previousNote = getPreviousNote(app, firstNote, settings);
 		if (!previousNote || previousNote === startNote) {
 			break;
 		}
