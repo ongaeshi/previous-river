@@ -4,6 +4,8 @@ import PreviousRiverPlugin from "../main";
 export interface MyPluginSettings {
     enableDailyNoteNav: boolean;
     dailyNoteFormat: string;
+    dailyFolder: string;
+
     enableWeeklyNoteNav: boolean;
     weeklyNoteFormat: string;
 }
@@ -11,6 +13,7 @@ export interface MyPluginSettings {
 export const DEFAULT_SETTINGS: MyPluginSettings = {
     enableDailyNoteNav: true,
     dailyNoteFormat: 'YYYY-MM-DD',
+    dailyFolder: '/',
     enableWeeklyNoteNav: true,
     weeklyNoteFormat: 'gggg-[W]ww'
 }
@@ -69,7 +72,56 @@ export class MySettingTab extends PluginSettingTab {
         }));
 
         // TODO daily note folder setting (hanlde edge case of daily note of same file name in different folders)
+        new Setting(containerEl)
+            .setName('Daily notes folder')
+            .setDesc('Enter the folder that contains your daily notes')
+            .addText(text => text
+                .setPlaceholder('Example: Personal/Daily Notes')
+                .setValue(this.plugin.settings.dailyFolder)
+                .onChange(async (value) => {
+                    this.plugin.settings.dailyFolder = value;
+                    await this.plugin.saveSettings();
+                }));
 
         // TODO settings for weekly note
+        // settings to enable implicit navigation of daily notes
+        new Setting(containerEl)
+            .setName('Weekly Notes Settings')
+            .setHeading();
+
+        new Setting(containerEl)  
+            .setName('Navigate between Weekly Notes')
+            .setDesc("When enabled, you can navigate between weekly notes using the commands even if the weekly notes don't have 'previous' properties.")  
+            .addToggle(toggle => toggle  
+            .setValue(this.plugin.settings.enableWeeklyNoteNav)  
+            .onChange(async (value) => {  
+                this.plugin.settings.enableWeeklyNoteNav = value;  
+                await this.plugin.saveSettings();  
+                this.display();  
+            })  
+            );
+
+        const weeklyDateDesc = document.createDocumentFragment();  
+        weeklyDateDesc.appendText('For a list of all available tokens, see the ');  
+        weeklyDateDesc.createEl('a', {  
+            text: 'format reference',  
+            attr: { href: 'https://momentjs.com/docs/#/displaying/format/', target: '_blank' }  
+        });  
+        weeklyDateDesc.createEl('br');  
+        weeklyDateDesc.appendText('Your current syntax looks like this: ');  
+        const weeklyDateSampleEl = weeklyDateDesc.createEl('b', 'u-pop');  
+
+        new Setting(containerEl)  
+            .setName('Weekly Notes format')  
+            .setDesc(weeklyDateDesc)  
+            .addMomentFormat(momentFormat => momentFormat  
+            .setValue(this.plugin.settings.weeklyNoteFormat)  
+            .setSampleEl(weeklyDateSampleEl)  
+            .setDefaultFormat('gggg-[W]ww')  
+            .onChange(async (value) => {  
+                this.plugin.settings.weeklyNoteFormat = value;  
+                await this.plugin.saveSettings();  
+            }));
+        
 	}
 }
