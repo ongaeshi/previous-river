@@ -30,18 +30,15 @@ export function getPreviousLinkpath(app: App, file: TFile): string | null {
 /**
  * Determine if a file is daily note given it's basename
  */
-export function isDailyNote(
-	fileBasename: string,
-	dailyNoteFormat: string,
-): boolean {
-	return moment(fileBasename, dailyNoteFormat, true).isValid();
+export function isDailyNote(file: TFile, dailyNoteFormat: string, folderPath: string): boolean {
+  return file.parent?.path === folderPath && moment(file.basename, dailyNoteFormat, true).isValid(); 
 }
 
 /**
  * Determine if a file is a weekly note given its basename.
  */
-export function isWeeklyNote(fileBasename: string, weeklyNoteFormat: string): boolean {
-  return moment(fileBasename, weeklyNoteFormat, true).isValid();
+export function isWeeklyNote(file: TFile, weeklyNoteFormat: string, folderPath: string): boolean {
+  return file.parent?.path === folderPath && moment(file.basename, weeklyNoteFormat, true).isValid();
 }
 
 /**
@@ -92,11 +89,11 @@ export function getPreviousNote(app: App, file: TFile, settings: MyPluginSetting
   const previousLinkpath = getPreviousLinkpath(app, file);
   if (!previousLinkpath) {
     // handle daily note nav
-    if (settings.enableDailyNoteNav && isDailyNote(file.basename, settings.dailyNoteFormat)) {
+    if (settings.enableDailyNoteNav && isDailyNote(file, settings.dailyNoteFormat, settings.dailyFolder)) {
       return getPreviousDailyNote(app, file, settings.dailyNoteFormat);
     }
     // handle weekly note nav
-    if (settings.enableWeeklyNoteNav && isWeeklyNote(file.basename, settings.weeklyNoteFormat)) {
+    if (settings.enableWeeklyNoteNav && isWeeklyNote(file, settings.weeklyNoteFormat, settings.weeklyFolder)) {
       return getPreviousWeeklyNote(app, file, settings.weeklyNoteFormat);
     }
     return null;
@@ -153,7 +150,7 @@ export function getNextNotes(
 	}
 
   // handle daily note implicit next notes
-  if (settings.enableDailyNoteNav && isDailyNote(file.basename, settings.dailyNoteFormat)) {
+  if (settings.enableDailyNoteNav && isDailyNote(file, settings.dailyNoteFormat, settings.dailyFolder)) {
     const nextDailyNote = getNextDailyNote(app, file, settings.dailyNoteFormat);
     if (nextDailyNote != null && !nextNotes.includes(nextDailyNote)) {
       nextNotes.push(nextDailyNote);
@@ -161,7 +158,7 @@ export function getNextNotes(
   }
 
   // handle weekly note implicit next notes
-  if (settings.enableWeeklyNoteNav && isWeeklyNote(file.basename, settings.weeklyNoteFormat)) {
+  if (settings.enableWeeklyNoteNav && isWeeklyNote(file, settings.weeklyNoteFormat, settings.weeklyFolder)) {
     const nextWeeklyNote = getNextWeeklyNote(app, file, settings.weeklyNoteFormat);
     if (nextWeeklyNote != null && !nextNotes.includes(nextWeeklyNote)) {
       nextNotes.push(nextWeeklyNote);

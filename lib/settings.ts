@@ -1,5 +1,6 @@
-import {App, PluginSettingTab, Setting} from "obsidian";
+import {App, Notice, PluginSettingTab, Setting} from "obsidian";
 import PreviousRiverPlugin from "../main";
+import { FolderSuggest } from "./FolderSuggest";
 
 export interface MyPluginSettings {
     enableDailyNoteNav: boolean;
@@ -8,14 +9,17 @@ export interface MyPluginSettings {
 
     enableWeeklyNoteNav: boolean;
     weeklyNoteFormat: string;
+    weeklyFolder: string;
 }
 
 export const DEFAULT_SETTINGS: MyPluginSettings = {
     enableDailyNoteNav: true,
     dailyNoteFormat: 'YYYY-MM-DD',
     dailyFolder: '/',
+
     enableWeeklyNoteNav: true,
-    weeklyNoteFormat: 'gggg-[W]ww'
+    weeklyNoteFormat: 'gggg-[W]ww',
+    weeklyFolder: '/'
 }
 
 export class MySettingTab extends PluginSettingTab {
@@ -48,7 +52,7 @@ export class MySettingTab extends PluginSettingTab {
             })  
             );
 
-        // TODO setting to import setting from other plugin
+        // TODO setting to import setting from other plugin like daily notes, calendar, periodic notes
 
         const dateDesc = document.createDocumentFragment();  
         dateDesc.appendText('For a list of all available tokens, see the ');  
@@ -71,20 +75,22 @@ export class MySettingTab extends PluginSettingTab {
                 await this.plugin.saveSettings();  
         }));
 
-        // TODO daily note folder setting (hanlde edge case of daily note of same file name in different folders)
+        // this hanlde edge case of daily note of same file name in different folders
+        // TODO provide autocomplete like the calendar plugin
         new Setting(containerEl)
-            .setName('Daily notes folder')
-            .setDesc('Enter the folder that contains your daily notes')
-            .addText(text => text
-                .setPlaceholder('Example: Personal/Daily Notes')
+            .setName('Daily Notes folder')
+            .setDesc("Enter the folder that contains your daily notes, use '/' if the root folder contains your daily notes")
+            .addText((text) => {
+                text
+                .setPlaceholder('Personal/Daily Notes')
                 .setValue(this.plugin.settings.dailyFolder)
-                .onChange(async (value) => {
+                .onChange(async (value)=> {
                     this.plugin.settings.dailyFolder = value;
                     await this.plugin.saveSettings();
-                }));
+                })
+            });
 
-        // TODO settings for weekly note
-        // settings to enable implicit navigation of daily notes
+        // settings to enable implicit navigation of weekly notes
         new Setting(containerEl)
             .setName('Weekly Notes Settings')
             .setHeading();
@@ -122,6 +128,19 @@ export class MySettingTab extends PluginSettingTab {
                 this.plugin.settings.weeklyNoteFormat = value;  
                 await this.plugin.saveSettings();  
             }));
+
+        new Setting(containerEl)
+            .setName('Weekly Notes folder')
+            .setDesc("Enter the folder that contains your weekly notes, use '/' if the root folder contains your weekly notes")
+            .addText((text) => {
+                text
+                .setPlaceholder('Personal/Weekly Notes')
+                .setValue(this.plugin.settings.weeklyFolder)
+                .onChange(async (value)=> {
+                    this.plugin.settings.weeklyFolder = value;
+                    await this.plugin.saveSettings();
+                })
+            });
         
 	}
 }
