@@ -28,14 +28,14 @@ export function getPreviousLinkpath(app: App, file: TFile): string | null {
 }
 
 /**
- * Determine if a file is daily note given it's basename
+ * Determine if a file is daily note
  */
 export function isDailyNote(file: TFile, dailyNoteFormat: string, folderPath: string): boolean {
   return file.parent?.path === folderPath && moment(file.basename, dailyNoteFormat, true).isValid(); 
 }
 
 /**
- * Determine if a file is a weekly note given its basename.
+ * Determine if a file is a weekly note
  */
 export function isWeeklyNote(file: TFile, weeklyNoteFormat: string, folderPath: string): boolean {
   return file.parent?.path === folderPath && moment(file.basename, weeklyNoteFormat, true).isValid();
