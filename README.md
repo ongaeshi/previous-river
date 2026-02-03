@@ -18,7 +18,7 @@ If multiple candidates exist, a suggestion modal will allow you to choose.
 ### Daily/ weekly note navigation
 
 Daily notes and weekly notes are considered to be in sequence even if they don't have `previous` property, so You can navigate to previous daily note, next daily note, previous weekly note and next weekly note.  
-You can configure the daily notes and weekly notes settings, such as file format of the daily note.
+You can configure the daily notes and weekly notes settings, such as disable this feature, or set the file format of the daily note.
 
 ### Go to first note
 

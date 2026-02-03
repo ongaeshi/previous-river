@@ -30,20 +30,21 @@ export function getPreviousLinkpath(app: App, file: TFile): string | null {
 /**
  * Determine if a file is daily note
  */
-export function isDailyNote(file: TFile, dailyNoteFormat: string, folderPath: string): boolean {
+function isDailyNote(file: TFile, dailyNoteFormat: string, folderPath: string): boolean {
   return file.parent?.path === folderPath && moment(file.basename, dailyNoteFormat, true).isValid(); 
 }
 
 /**
  * Determine if a file is a weekly note
  */
-export function isWeeklyNote(file: TFile, weeklyNoteFormat: string, folderPath: string): boolean {
+function isWeeklyNote(file: TFile, weeklyNoteFormat: string, folderPath: string): boolean {
   return file.parent?.path === folderPath && moment(file.basename, weeklyNoteFormat, true).isValid();
 }
 
 /**
  * Helper to find adjacent periodic notes (daily/weekly).
  */
+// TODO use metadata cache approach instead of this linear scan with limit approach
 function findAdjacentPeriodicNote(
   app: App,
   file: TFile,
@@ -69,22 +70,19 @@ function findAdjacentPeriodicNote(
   return null;
 }
 
-// TODO use metadata cache approach instead of this linear scan with limit approach,
-// TODO refactor the following 2 functions into sth like findAdjDailyNote with direction para
-// ? do i want to move these 2 functions to the utils.ts file?
-export function getPreviousDailyNote(app: App, file: TFile, dailyNoteFormat: string, folderPath: string): TFile | null {
+function getPreviousDailyNote(app: App, file: TFile, dailyNoteFormat: string, folderPath: string): TFile | null {
   return findAdjacentPeriodicNote(app, file, dailyNoteFormat, -1, 'days', 365, folderPath);
 }
 
-export function getNextDailyNote(app: App, file: TFile, dailyNoteFormat: string, folderPath: string): TFile | null {
+function getNextDailyNote(app: App, file: TFile, dailyNoteFormat: string, folderPath: string): TFile | null {
   return findAdjacentPeriodicNote(app, file, dailyNoteFormat, 1, 'days', 365, folderPath);
 }
 
-export function getPreviousWeeklyNote(app: App, file: TFile, weeklyNoteFormat: string, folderPath: string): TFile | null {
+function getPreviousWeeklyNote(app: App, file: TFile, weeklyNoteFormat: string, folderPath: string): TFile | null {
   return findAdjacentPeriodicNote(app, file, weeklyNoteFormat, -1, 'weeks', 52, folderPath);
 }
 
-export function getNextWeeklyNote(app: App, file: TFile, weeklyNoteFormat: string, folderPath: string): TFile | null {
+function getNextWeeklyNote(app: App, file: TFile, weeklyNoteFormat: string, folderPath: string): TFile | null {
   return findAdjacentPeriodicNote(app, file, weeklyNoteFormat, 1, 'weeks', 52, folderPath);
 }
 

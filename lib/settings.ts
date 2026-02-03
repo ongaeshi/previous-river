@@ -1,6 +1,5 @@
 import {App, Notice, PluginSettingTab, Setting} from "obsidian";
 import PreviousRiverPlugin from "../main";
-import { FolderSuggest } from "./FolderSuggest";
 
 export interface MyPluginSettings {
     enableDailyNoteNav: boolean;
