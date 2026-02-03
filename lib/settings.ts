@@ -71,7 +71,7 @@ export class MySettingTab extends PluginSettingTab {
             .setSampleEl(dateSampleEl)  
             .setDefaultFormat('YYYY-MM-DD')  
             .onChange(async (value) => {  
-                this.plugin.settings.dailyNoteFormat = value;  
+                this.plugin.settings.dailyNoteFormat = value || DEFAULT_SETTINGS.dailyNoteFormat;  
                 await this.plugin.saveSettings();  
         }));
 
@@ -125,7 +125,7 @@ export class MySettingTab extends PluginSettingTab {
             .setSampleEl(weeklyDateSampleEl)  
             .setDefaultFormat('gggg-[W]ww')  
             .onChange(async (value) => {  
-                this.plugin.settings.weeklyNoteFormat = value;  
+                this.plugin.settings.weeklyNoteFormat = value || DEFAULT_SETTINGS.weeklyNoteFormat;  
                 await this.plugin.saveSettings();  
             }));
 

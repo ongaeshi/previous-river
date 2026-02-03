@@ -50,14 +50,20 @@ function findAdjacentPeriodicNote(
   format: string,
   direction: 1 | -1,
   unit: 'days' | 'weeks',
-  limit: number
+  limit: number,
+  folderPath: string
 ): TFile | null {
   let searchDate = moment(file.basename, format).add(direction, unit);
   const currentFilePath = file.path;
 
   for (let i = 0; i < limit; i++) {
     const target = app.metadataCache.getFirstLinkpathDest(searchDate.format(format), currentFilePath);
-    if (target) return target;
+    if (unit === 'days' && target && isDailyNote(target, format, folderPath)) {
+      return target;
+    }
+    if (unit === 'weeks' && target && isWeeklyNote(target, format, folderPath)){
+      return target;
+    }
     searchDate.add(direction, unit);
   }
   return null;
@@ -66,20 +72,20 @@ function findAdjacentPeriodicNote(
 // TODO use metadata cache approach instead of this linear scan with limit approach,
 // TODO refactor the following 2 functions into sth like findAdjDailyNote with direction para
 // ? do i want to move these 2 functions to the utils.ts file?
-export function getPreviousDailyNote(app: App, file: TFile, dailyNoteFormat: string): TFile | null {
-  return findAdjacentPeriodicNote(app, file, dailyNoteFormat, -1, 'days', 365);
+export function getPreviousDailyNote(app: App, file: TFile, dailyNoteFormat: string, folderPath: string): TFile | null {
+  return findAdjacentPeriodicNote(app, file, dailyNoteFormat, -1, 'days', 365, folderPath);
 }
 
-export function getNextDailyNote(app: App, file: TFile, dailyNoteFormat: string): TFile | null {
-  return findAdjacentPeriodicNote(app, file, dailyNoteFormat, 1, 'days', 365);
+export function getNextDailyNote(app: App, file: TFile, dailyNoteFormat: string, folderPath: string): TFile | null {
+  return findAdjacentPeriodicNote(app, file, dailyNoteFormat, 1, 'days', 365, folderPath);
 }
 
-export function getPreviousWeeklyNote(app: App, file: TFile, weeklyNoteFormat: string): TFile | null {
-  return findAdjacentPeriodicNote(app, file, weeklyNoteFormat, -1, 'weeks', 52);
+export function getPreviousWeeklyNote(app: App, file: TFile, weeklyNoteFormat: string, folderPath: string): TFile | null {
+  return findAdjacentPeriodicNote(app, file, weeklyNoteFormat, -1, 'weeks', 52, folderPath);
 }
 
-export function getNextWeeklyNote(app: App, file: TFile, weeklyNoteFormat: string): TFile | null {
-  return findAdjacentPeriodicNote(app, file, weeklyNoteFormat, 1, 'weeks', 52);
+export function getNextWeeklyNote(app: App, file: TFile, weeklyNoteFormat: string, folderPath: string): TFile | null {
+  return findAdjacentPeriodicNote(app, file, weeklyNoteFormat, 1, 'weeks', 52, folderPath);
 }
 
 /**
@@ -90,11 +96,11 @@ export function getPreviousNote(app: App, file: TFile, settings: MyPluginSetting
   if (!previousLinkpath) {
     // handle daily note nav
     if (settings.enableDailyNoteNav && isDailyNote(file, settings.dailyNoteFormat, settings.dailyFolder)) {
-      return getPreviousDailyNote(app, file, settings.dailyNoteFormat);
+      return getPreviousDailyNote(app, file, settings.dailyNoteFormat, settings.dailyFolder);
     }
     // handle weekly note nav
     if (settings.enableWeeklyNoteNav && isWeeklyNote(file, settings.weeklyNoteFormat, settings.weeklyFolder)) {
-      return getPreviousWeeklyNote(app, file, settings.weeklyNoteFormat);
+      return getPreviousWeeklyNote(app, file, settings.weeklyNoteFormat, settings.weeklyFolder);
     }
     return null;
   }
@@ -151,7 +157,7 @@ export function getNextNotes(
 
   // handle daily note implicit next notes
   if (settings.enableDailyNoteNav && isDailyNote(file, settings.dailyNoteFormat, settings.dailyFolder)) {
-    const nextDailyNote = getNextDailyNote(app, file, settings.dailyNoteFormat);
+    const nextDailyNote = getNextDailyNote(app, file, settings.dailyNoteFormat, settings.dailyFolder);
     if (nextDailyNote != null && !nextNotes.includes(nextDailyNote)) {
       nextNotes.push(nextDailyNote);
     }
@@ -159,7 +165,7 @@ export function getNextNotes(
 
   // handle weekly note implicit next notes
   if (settings.enableWeeklyNoteNav && isWeeklyNote(file, settings.weeklyNoteFormat, settings.weeklyFolder)) {
-    const nextWeeklyNote = getNextWeeklyNote(app, file, settings.weeklyNoteFormat);
+    const nextWeeklyNote = getNextWeeklyNote(app, file, settings.weeklyNoteFormat, settings.weeklyFolder);
     if (nextWeeklyNote != null && !nextNotes.includes(nextWeeklyNote)) {
       nextNotes.push(nextWeeklyNote);
     }
