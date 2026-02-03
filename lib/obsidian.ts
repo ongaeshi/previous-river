@@ -31,7 +31,13 @@ export function getPreviousLinkpath(app: App, file: TFile): string | null {
  * Determine if a file is daily note
  */
 function isDailyNote(file: TFile, dailyNoteFormat: string, folderPath: string): boolean {
-  return file.parent?.path === folderPath && moment(file.basename, dailyNoteFormat, true).isValid(); 
+  const result = file.parent?.path === folderPath && moment(file.basename, dailyNoteFormat, true).isValid(); 
+  // console.log(`file: ${file.name}`);
+  // console.log(`file parent path: ${file.parent?.path}`);
+  // console.log(`daily note format: ${dailyNoteFormat}`);
+  // console.log(`daily note path: ${folderPath}`);
+  // console.log(`is daily note: ${result}`);
+  return result;
 }
 
 /**
@@ -57,8 +63,18 @@ function findAdjacentPeriodicNote(
   let searchDate = moment(file.basename, format).add(direction, unit);
   const currentFilePath = file.path;
 
+  console.log(`finding adj note for ${file.path}`);
   for (let i = 0; i < limit; i++) {
-    const target = app.metadataCache.getFirstLinkpathDest(searchDate.format(format), currentFilePath);
+    let searchLinktext = "";
+    if (folderPath === '/') {
+      searchLinktext = searchDate.format(format);
+    }
+    else {
+      searchLinktext = `${folderPath}/${searchDate.format(format)}`;
+    }
+    console.log(`searchLinktext: ${searchLinktext}`);
+    const target = app.metadataCache.getFirstLinkpathDest(searchLinktext, "");
+    console.log(`${i}, target: ${target?.path}`);
     if (unit === 'days' && target && isDailyNote(target, format, folderPath)) {
       return target;
     }
