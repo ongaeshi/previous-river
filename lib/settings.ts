@@ -1,5 +1,6 @@
 import {App, Notice, PluginSettingTab, Setting} from "obsidian";
 import PreviousRiverPlugin from "../main";
+import { formatFolderPath } from "./utils";
 
 export interface MyPluginSettings {
     enableDailyNoteNav: boolean;
@@ -84,7 +85,7 @@ export class MySettingTab extends PluginSettingTab {
                 .setPlaceholder('Personal/Daily Notes')
                 .setValue(this.plugin.settings.dailyFolder)
                 .onChange(async (value)=> {
-                    this.plugin.settings.dailyFolder = value;
+                    this.plugin.settings.dailyFolder = formatFolderPath(value);
                     await this.plugin.saveSettings();
                 })
             });
@@ -136,7 +137,7 @@ export class MySettingTab extends PluginSettingTab {
                 .setPlaceholder('Personal/Weekly Notes')
                 .setValue(this.plugin.settings.weeklyFolder)
                 .onChange(async (value)=> {
-                    this.plugin.settings.weeklyFolder = value;
+                    this.plugin.settings.weeklyFolder = formatFolderPath(value);
                     await this.plugin.saveSettings();
                 })
             });
