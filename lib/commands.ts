@@ -2,14 +2,15 @@ import { App, TFile, Notice } from "obsidian";
 import { ConfirmModal } from "./ConfirmModal";
 import { NextNoteSuggestModal } from "./NextNoteSuggestModal";
 import { getActiveFile, getPreviousNote, getNextNotes, detachNote, setPreviousProperty, findLastNote, findFirstNote } from "./obsidian";
+import { MyPluginSettings } from "./settings";
 
-export async function goToPreviousNoteCommand(app: App) {
+export async function goToPreviousNoteCommand(app: App, settings: MyPluginSettings) {
     const file = getActiveFile(app);
     if (!file) {
         return;
     }
 
-    const target = getPreviousNote(app, file);
+    const target = getPreviousNote(app, file, settings);
     if (!target) {
         return;
     }
@@ -17,13 +18,13 @@ export async function goToPreviousNoteCommand(app: App) {
     await app.workspace.getLeaf().openFile(target);
 }
 
-export async function goToNextNoteCommand(app: App) {
+export async function goToNextNoteCommand(app: App, settings: MyPluginSettings) {
     const file = getActiveFile(app);
     if (!file) {
         return;
     }
 
-    const nextNotes = getNextNotes(app, file);
+    const nextNotes = getNextNotes(app, file, settings);
 
     if (nextNotes.length === 0) {
         return;
@@ -40,31 +41,31 @@ export async function goToNextNoteCommand(app: App) {
     }
 }
 
-export async function goToFirstNoteCommand(app: App) {
+export async function goToFirstNoteCommand(app: App, settings: MyPluginSettings) {
     const file = getActiveFile(app);
     if (!file) {
         return;
     }
 
-    const firstNote = await findFirstNote(app, file);
+    const firstNote = await findFirstNote(app, file, settings);
     if (firstNote !== file) {
         await app.workspace.getLeaf().openFile(firstNote);
     }
 }
 
-export async function goToLastNoteCommand(app: App) {
+export async function goToLastNoteCommand(app: App, settings: MyPluginSettings) {
     const file = getActiveFile(app);
     if (!file) {
         return;
     }
 
-    const lastNote = await findLastNote(app, file);
+    const lastNote = await findLastNote(app, file, settings);
     if (lastNote && lastNote !== file) {
         await app.workspace.getLeaf().openFile(lastNote);
     }
 }
 
-export async function detachNoteCommand(app: App) {
+export async function detachNoteCommand(app: App, settings: MyPluginSettings) {
     const file = getActiveFile(app);
     if (!file) {
         return;
@@ -75,12 +76,12 @@ export async function detachNoteCommand(app: App) {
         "Detach Note",
         `Are you sure you want to detach "${file.basename}" from the chain?`,
         async () => {
-            await detachNote(app, file, { showNotification: true });
+            await detachNote(app, file, settings, { showNotification: true });
         }
     ).open();
 }
 
-export async function insertNoteToLastCommand(app: App) {
+export async function insertNoteToLastCommand(app: App, settings: MyPluginSettings) {
     const file = getActiveFile(app);
     if (!file) {
         return;
@@ -94,9 +95,9 @@ export async function insertNoteToLastCommand(app: App) {
         return;
     }
 
-    await detachNote(app, file);
+    await detachNote(app, file, settings);
 
-    const lastNote = await findLastNote(app, selectedNote);
+    const lastNote = await findLastNote(app, selectedNote, settings);
     if (!lastNote) {
         return;
     }
@@ -105,7 +106,7 @@ export async function insertNoteToLastCommand(app: App) {
     new Notice(`Inserted note to last: ${lastNote.basename}`);
 }
 
-export async function insertNoteCommand(app: App) {
+export async function insertNoteCommand(app: App, settigns: MyPluginSettings) {
     const file = getActiveFile(app);
     if (!file) {
         return;
@@ -122,10 +123,10 @@ export async function insertNoteCommand(app: App) {
     }
 
     // 2. Detach current note
-    await detachNote(app, file);
+    await detachNote(app, file, settigns);
 
     // 3. Find successors of the target note (notes that currently point to target)
-    const successors = getNextNotes(app, selectedNote);
+    const successors = getNextNotes(app, selectedNote, settigns);
 
     // 4. Link current note to target
     await setPreviousProperty(app, file, selectedNote.basename);
@@ -141,7 +142,7 @@ export async function insertNoteCommand(app: App) {
     }
 }
 
-export async function insertNoteToFirstCommand(app: App) {
+export async function insertNoteToFirstCommand(app: App, settings: MyPluginSettings) {
     const file = getActiveFile(app);
     if (!file) {
         return;
@@ -157,10 +158,10 @@ export async function insertNoteToFirstCommand(app: App) {
     }
 
     // 2. Detach current note
-    await detachNote(app, file);
+    await detachNote(app, file, settings);
 
     // 3. Find first note of the chain
-    const firstNote = await findFirstNote(app, selectedNote);
+    const firstNote = await findFirstNote(app, selectedNote, settings);
 
     // 4. Update first note to point to current note
     await setPreviousProperty(app, firstNote, file.basename);
