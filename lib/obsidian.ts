@@ -160,3 +160,58 @@ export async function findFirstNote(app: App, startNote: TFile): Promise<TFile> 
   }
   return firstNote;
 }
+
+/**
+ * Checks if `target` is an ancestor of `note` by following the `previous` links.
+ * 
+ * @param app - The Obsidian App instance.
+ * @param note - The starting note.
+ * @param target - The potential ancestor note.
+ * @returns true if `target` is an ancestor of `note`, false otherwise.
+ */
+export function isAncestor(app: App, note: TFile, target: TFile): boolean {
+  let current = note;
+  const visited = new Set<string>();
+  visited.add(current.path);
+
+  // Limit iteration to prevent infinite loops in case of cycles (though visited set handles it)
+  // A reasonable limit for depth
+  let depth = 0;
+  const maxDepth = 100000; // TODO: Is this limit necessary?
+
+  while (depth < maxDepth) {
+    const prev = getPreviousNote(app, current);
+    if (!prev) {
+      return false;
+    }
+
+    if (prev.path === target.path) {
+      return true;
+    }
+
+    if (visited.has(prev.path)) {
+      return false; // Cycle detected
+    }
+
+    visited.add(prev.path);
+    current = prev;
+    depth++;
+  }
+
+  return false;
+}
+
+/**
+ * Checks if two notes are on the same path (i.e., one is an ancestor of the other).
+ * 
+ * @param app - The Obsidian App instance.
+ * @param note1 - The first note.
+ * @param note2 - The second note.
+ * @returns true if they are on the same path, false otherwise.
+ */
+export function isOnSamePath(app: App, note1: TFile, note2: TFile): boolean {
+  if (note1.path === note2.path) {
+    return true;
+  }
+  return isAncestor(app, note1, note2) || isAncestor(app, note2, note1);
+}

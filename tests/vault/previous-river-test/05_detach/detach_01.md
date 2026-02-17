@@ -1,3 +1,3 @@
 ---
-previous: "[[detach_00]]"
+previous: "[[insert_not_detach_00]]"
 ---

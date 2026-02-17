@@ -1,7 +1,7 @@
 import { App, TFile, Notice } from "obsidian";
 import { ConfirmModal } from "./ConfirmModal";
 import { NextNoteSuggestModal } from "./NextNoteSuggestModal";
-import { getActiveFile, getPreviousNote, getNextNotes, detachNote, setPreviousProperty, findLastNote, findFirstNote } from "./obsidian";
+import { getActiveFile, getPreviousNote, getNextNotes, detachNote, setPreviousProperty, findLastNote, findFirstNote, isOnSamePath } from "./obsidian";
 
 export async function goToPreviousNoteCommand(app: App) {
     const file = getActiveFile(app);
@@ -121,8 +121,11 @@ export async function insertNoteCommand(app: App) {
         return;
     }
 
-    // 2. Detach current note
-    await detachNote(app, file);
+    // 2. Check if the notes are on the same path
+    if (isOnSamePath(app, file, selectedNote)) {
+        new Notice(`Cannot insert: "${file.basename}" and "${selectedNote.basename}" are on the same path.`);
+        return;
+    }
 
     // 3. Find successors of the target note (notes that currently point to target)
     const successors = getNextNotes(app, selectedNote);
