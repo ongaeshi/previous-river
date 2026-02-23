@@ -162,20 +162,23 @@ export async function insertNoteToFirstCommand(app: App) {
         return;
     }
 
-    // 2. Detach current note
-    await detachNote(app, file);
+    // 2. Check for cycles
+    if (isOnSamePath(app, file, selectedNote)) {
+        new Notice(`Cannot insert: "${file.basename}" and "${selectedNote.basename}" are on the same path.`);
+        return;
+    }
 
-    // 3. Find first note of the chain
+    // 3. Find first note of the target chain
     const firstNote = await findFirstNote(app, selectedNote);
 
-    // 4. Update first note to point to current note
-    await setPreviousProperty(app, firstNote, file.basename);
+    // 4. Find the last note of the current chain
+    const lastNoteOfCurrent = await findLastNote(app, file);
 
-    // 5. Update current note to point to ROOT
-    await app.fileManager.processFrontMatter(file, (fm) => {
-        fm.previous = "ROOT";
-    });
-    new Notice(`Inserted note before ${firstNote.basename}`);
+    // 5. Update target's first note to point to the current chain's last note
+    if (lastNoteOfCurrent) {
+        await setPreviousProperty(app, firstNote, lastNoteOfCurrent.basename);
+        new Notice(`Inserted note before ${firstNote.basename}`);
+    }
 }
 
 function getSortedMarkdownFiles(app: App): TFile[] {
