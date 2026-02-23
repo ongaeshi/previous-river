@@ -94,7 +94,10 @@ export async function insertNoteToLastCommand(app: App) {
         return;
     }
 
-    await detachNote(app, file);
+    if (isOnSamePath(app, file, selectedNote)) {
+        new Notice(`Cannot insert: "${file.basename}" and "${selectedNote.basename}" are on the same path.`);
+        return;
+    }
 
     const lastNote = await findLastNote(app, selectedNote);
     if (!lastNote) {
