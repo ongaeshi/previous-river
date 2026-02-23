@@ -133,15 +133,32 @@ export async function insertNoteCommand(app: App) {
     // 3. Find successors of the target note (notes that currently point to target)
     const successors = getNextNotes(app, selectedNote);
 
-    // 4. Link current note to target
+    let targetNextNote: TFile | null = null;
+    if (successors.length === 1) {
+        targetNextNote = successors[0];
+    } else if (successors.length > 1) {
+        targetNextNote = await new Promise<TFile | null>((resolve) => {
+            new NextNoteSuggestModal(app, successors, resolve).open();
+        });
+        if (!targetNextNote) {
+            return; // cancelled
+        }
+    }
+
+    // 4. Find the last note of the current chain
+    // findLastNote automatically prompts if there are branches
+    const sourceLastNote = await findLastNote(app, file);
+    if (!sourceLastNote) {
+        return; // cancelled
+    }
+
+    // 5. Link current note to target
     await setPreviousProperty(app, file, selectedNote.basename);
 
-    // 5. Update successors to point to current note
-    for (const successor of successors) {
-        await setPreviousProperty(app, successor, file.basename);
-    }
-    if (successors.length > 0) {
-        new Notice(`Inserted note between ${selectedNote.basename} and ${successors[0].basename}`);
+    // 6. Update targetNextNote to point to the current chain's last note
+    if (targetNextNote) {
+        await setPreviousProperty(app, targetNextNote, sourceLastNote.basename);
+        new Notice(`Inserted note between ${selectedNote.basename} and ${targetNextNote.basename}`);
     } else {
         new Notice(`Inserted note after ${selectedNote.basename}`);
     }
