@@ -4,6 +4,16 @@ An Obsidian plugin that enables navigation between notes using the `previous` pr
 
 <img width="640" src="https://github.com/user-attachments/assets/db3d5466-affd-43de-aebe-b5d4757e08ac" />
 
+## Installation
+
+Currently, this plugin is not available in the Obsidian community plugins browser. You can install it using [BRAT](https://github.com/TfTHacker/obsidian42-brat).
+
+1. Install the **Obsidian42 - BRAT** plugin from the Community Plugins in Obsidian.
+2. Enable the BRAT plugin.
+3. Open the BRAT settings and click on **Add Beta plugin**.
+4. Enter the GitHub repository URL: `ongaeshi/previous-river`
+5. Enable the **Previous River** plugin in the Community Plugins list.
+
 ## Features
 
 ### Go to previous note
