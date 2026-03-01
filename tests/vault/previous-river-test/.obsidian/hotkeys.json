@@ -240,9 +240,10 @@
   "app:toggle-right-sidebar": [
     {
       "modifiers": [
-        "Alt"
+        "Alt",
+        "Mod"
       ],
-      "key": "L"
+      "key": "B"
     }
   ]
 }
