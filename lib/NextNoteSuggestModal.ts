@@ -1,8 +1,11 @@
 import { FuzzySuggestModal, App, TFile } from "obsidian";
 
 export class NextNoteSuggestModal extends FuzzySuggestModal<TFile> {
-  constructor(app: App, private options: TFile[], private onSelect: (file: TFile) => void) {
+  constructor(app: App, private options: TFile[], private onSelect: (file: TFile) => void, placeholderText?: string) {
     super(app);
+    if (placeholderText) {
+      this.setPlaceholder(placeholderText);
+    }
   }
 
   getItems(): TFile[] {

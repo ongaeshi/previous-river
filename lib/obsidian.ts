@@ -121,7 +121,7 @@ export async function setPreviousProperty(app: App, file: TFile, previousLink: s
   });
 }
 
-export async function findLastNote(app: App, startNote: TFile): Promise<TFile | null> {
+export async function findLastNote(app: App, startNote: TFile, placeholder: string = "Select the next branch..."): Promise<TFile | null> {
   let lastNote = startNote;
   while (true) {
     const nextNotes = getNextNotes(app, lastNote);
@@ -135,7 +135,7 @@ export async function findLastNote(app: App, startNote: TFile): Promise<TFile | 
     } else {
       // If multiple candidates exist, open a suggestion modal.
       const selectedNote = await new Promise<TFile | null>((resolve) => {
-        new NextNoteSuggestModal(app, nextNotes, resolve).open();
+        new NextNoteSuggestModal(app, nextNotes, resolve, placeholder).open();
       });
 
       if (!selectedNote) {

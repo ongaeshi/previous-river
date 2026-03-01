@@ -36,7 +36,7 @@ export async function goToNextNoteCommand(app: App) {
         // If multiple candidates exist, open a suggestion modal.
         new NextNoteSuggestModal(app, nextNotes, (selectedFile) => {
             void app.workspace.getLeaf().openFile(selectedFile);
-        }).open();
+        }, "Select next note...").open();
     }
 }
 
@@ -58,7 +58,7 @@ export async function goToLastNoteCommand(app: App) {
         return;
     }
 
-    const lastNote = await findLastNote(app, file);
+    const lastNote = await findLastNote(app, file, "Select the next branch to reach the last note...");
     if (lastNote && lastNote !== file) {
         await app.workspace.getLeaf().openFile(lastNote);
     }
@@ -87,7 +87,7 @@ export async function insertNoteToLastCommand(app: App) {
     }
 
     const selectedNote = await new Promise<TFile | null>((resolve) => {
-        new NextNoteSuggestModal(app, getSortedMarkdownFiles(app), resolve).open();
+        new NextNoteSuggestModal(app, getSortedMarkdownFiles(app), resolve, "Select target note...").open();
     });
 
     if (!selectedNote) {
@@ -99,7 +99,7 @@ export async function insertNoteToLastCommand(app: App) {
         return;
     }
 
-    const lastNote = await findLastNote(app, selectedNote);
+    const lastNote = await findLastNote(app, selectedNote, "Select the next branch of the target note...");
     if (!lastNote) {
         return;
     }
@@ -117,7 +117,7 @@ export async function insertNoteCommand(app: App) {
     // 1. Select target note
     const selectedNote = await new Promise<TFile | null>((resolve) => {
         // Show all markdown files
-        new NextNoteSuggestModal(app, getSortedMarkdownFiles(app), resolve).open();
+        new NextNoteSuggestModal(app, getSortedMarkdownFiles(app), resolve, "Select target note...").open();
     });
 
     if (!selectedNote) {
@@ -138,7 +138,7 @@ export async function insertNoteCommand(app: App) {
         targetNextNote = successors[0];
     } else if (successors.length > 1) {
         targetNextNote = await new Promise<TFile | null>((resolve) => {
-            new NextNoteSuggestModal(app, successors, resolve).open();
+            new NextNoteSuggestModal(app, successors, resolve, "Select successor of the target note...").open();
         });
         if (!targetNextNote) {
             return; // cancelled
@@ -147,7 +147,7 @@ export async function insertNoteCommand(app: App) {
 
     // 4. Find the last note of the current chain
     // findLastNote automatically prompts if there are branches
-    const sourceLastNote = await findLastNote(app, file);
+    const sourceLastNote = await findLastNote(app, file, "Select the next branch of the current note...");
     if (!sourceLastNote) {
         return; // cancelled
     }
@@ -172,7 +172,7 @@ export async function insertNoteToFirstCommand(app: App) {
 
     // 1. Select target note
     const selectedNote = await new Promise<TFile | null>((resolve) => {
-        new NextNoteSuggestModal(app, getSortedMarkdownFiles(app), resolve).open();
+        new NextNoteSuggestModal(app, getSortedMarkdownFiles(app), resolve, "Select target note...").open();
     });
 
     if (!selectedNote) {
@@ -189,7 +189,7 @@ export async function insertNoteToFirstCommand(app: App) {
     const firstNote = await findFirstNote(app, selectedNote);
 
     // 4. Find the last note of the current chain
-    const lastNoteOfCurrent = await findLastNote(app, file);
+    const lastNoteOfCurrent = await findLastNote(app, file, "Select the next branch of the current note...");
 
     // 5. Update target's first note to point to the current chain's last note
     if (lastNoteOfCurrent) {
