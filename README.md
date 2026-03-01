@@ -20,6 +20,15 @@ Follow the `previous` property chain to reach the first note in the sequence.
 Use backlinks to find the last note in the sequence.  
 If there are multiple candidates, a suggestion modal will appear for selection.
 
+### Insert notes
+Insert notes into the current backlink sequence.
+- **Insert Note**: Insert the selected note into the sequence.
+- **Insert Note to First**: Insert the selected note at the beginning of the sequence.
+- **Insert Note to Last**: Insert the selected note at the end of the sequence.
+
+### Detach note
+Detach the current note from the sequence by setting its `previous` property to `ROOT`.
+
 ## Recommended Hotkeys
 
 - **Go to previous note**: `Alt+,`
