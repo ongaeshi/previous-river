@@ -149,7 +149,7 @@ export async function findLastNote(app: App, startNote: TFile, placeholder: stri
   return lastNote;
 }
 
-export async function findFirstNote(app: App, startNote: TFile): Promise<TFile> {
+export function findFirstNote(app: App, startNote: TFile): TFile {
   let firstNote = startNote;
   while (true) {
     const previousNote = getPreviousNote(app, firstNote);

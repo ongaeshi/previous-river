@@ -46,7 +46,7 @@ export async function goToFirstNoteCommand(app: App) {
         return;
     }
 
-    const firstNote = await findFirstNote(app, file);
+    const firstNote = findFirstNote(app, file);
     if (firstNote !== file) {
         await app.workspace.getLeaf().openFile(firstNote);
     }
@@ -64,7 +64,7 @@ export async function goToLastNoteCommand(app: App) {
     }
 }
 
-export async function detachNoteCommand(app: App) {
+export function detachNoteCommand(app: App) {
     const file = getActiveFile(app);
     if (!file) {
         return;
@@ -74,8 +74,8 @@ export async function detachNoteCommand(app: App) {
         app,
         "Detach Note",
         `Are you sure you want to detach "${file.basename}" from the chain?`,
-        async () => {
-            await detachNote(app, file, { showNotification: true });
+        () => {
+            void detachNote(app, file, { showNotification: true });
         }
     ).open();
 }
@@ -186,7 +186,7 @@ export async function insertNoteToFirstCommand(app: App) {
     }
 
     // 3. Find first note of the target chain
-    const firstNote = await findFirstNote(app, selectedNote);
+    const firstNote = findFirstNote(app, selectedNote);
 
     // 4. Find the last note of the current chain
     const lastNoteOfCurrent = await findLastNote(app, file, "Select the next branch of the current note...");
