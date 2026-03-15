@@ -1,5 +1,8 @@
 # History
 
+## 0.2.1 (2026-03-15)
+- Remove redundant async/await.
+
 ## 0.2.0 (2026-03-02)
 - **Insert note**: Insert the selected note into the sequence.
 - **Insert note to first**: Insert the selected note at the beginning of the sequence.
