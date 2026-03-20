@@ -51,24 +51,32 @@ export function getPreviousNote(app: App, file: TFile): TFile | null {
  * Retrieve notes that list the current file as their `previous` note.
  */
 export function getNextNotes(app: App, file: TFile): TFile[] {
+  const currentPath = file.path;
+  const backlinks = app.metadataCache.resolvedLinks;
   const nextNotes: TFile[] = [];
 
-  // @ts-ignore: Use undocumented API to get backlinks efficiently
-  const backlinks = app.metadataCache.getBacklinksForFile(file);
+  // Use Object properties directly (for...in) instead of Object.entries to prevent huge array allocations
+  for (const sourcePath in backlinks) {
+    if (!Object.prototype.hasOwnProperty.call(backlinks, sourcePath)) continue;
 
-  if (!backlinks || !backlinks.data || !(backlinks.data instanceof Map)) {
-    return nextNotes;
-  }
-
-  for (const [sourcePath, links] of backlinks.data.entries()) {
-    // リンク情報の中に、frontmatter の `previous` キーから生成されたリンクが存在するかチェック
-    const hasPreviousLink = links.some((link: any) => link.key === "previous");
-    if (!hasPreviousLink) {
+    const targets = backlinks[sourcePath];
+    // Check if the source note links to the current note
+    if (!targets || !targets[currentPath]) {
       continue;
     }
 
     const targetFile = app.vault.getAbstractFileByPath(sourcePath);
-    if (targetFile instanceof TFile) {
+    if (!(targetFile instanceof TFile)) {
+      continue;
+    }
+
+    const previousLinkText = getPreviousLinkpath(app, targetFile);
+    if (!previousLinkText) {
+      continue;
+    }
+
+    // Add only if the `previous` field points to the current note.
+    if (previousLinkText === file.basename || previousLinkText === currentPath) {
       nextNotes.push(targetFile);
     }
   }
