@@ -52,15 +52,16 @@ export function getPreviousNote(app: App, file: TFile): TFile | null {
  */
 export function getNextNotes(app: App, file: TFile): TFile[] {
   const currentPath = file.path;
-  const backlinks = app.metadataCache.resolvedLinks;
   const nextNotes: TFile[] = [];
 
-  for (const [sourcePath, targets] of Object.entries(backlinks)) {
-    // Check if the source note links to the current note.
-    if (!targets[currentPath]) {
-      continue;
-    }
+  // @ts-ignore: Use undocumented API to get backlinks efficiently (O(1) instead of O(N))
+  const backlinks = app.metadataCache.getBacklinksForFile(file);
 
+  if (!backlinks || !backlinks.data || !(backlinks.data instanceof Map)) {
+    return nextNotes;
+  }
+
+  for (const sourcePath of backlinks.data.keys()) {
     const targetFile = app.vault.getAbstractFileByPath(sourcePath);
     if (!(targetFile instanceof TFile)) {
       continue;
@@ -124,7 +125,7 @@ export async function setPreviousProperty(app: App, file: TFile, previousLink: s
 export async function findLastNote(app: App, startNote: TFile, placeholder: string = "Select the next branch..."): Promise<TFile | null> {
   let lastNote = startNote;
   let startTime = Date.now();
-  const TIMEOUT_MS = 5000;
+  const TIMEOUT_MS = 10000;
 
   while (true) {
     if (Date.now() - startTime > TIMEOUT_MS) {
