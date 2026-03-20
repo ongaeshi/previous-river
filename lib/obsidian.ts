@@ -51,28 +51,24 @@ export function getPreviousNote(app: App, file: TFile): TFile | null {
  * Retrieve notes that list the current file as their `previous` note.
  */
 export function getNextNotes(app: App, file: TFile): TFile[] {
-  const currentPath = file.path;
-  const backlinks = app.metadataCache.resolvedLinks;
   const nextNotes: TFile[] = [];
 
-  for (const [sourcePath, targets] of Object.entries(backlinks)) {
-    // Check if the source note links to the current note.
-    if (!targets[currentPath]) {
+  // @ts-ignore: Use undocumented API to get backlinks efficiently
+  const backlinks = app.metadataCache.getBacklinksForFile(file);
+
+  if (!backlinks || !backlinks.data || !(backlinks.data instanceof Map)) {
+    return nextNotes;
+  }
+
+  for (const [sourcePath, links] of backlinks.data.entries()) {
+    // リンク情報の中に、frontmatter の `previous` キーから生成されたリンクが存在するかチェック
+    const hasPreviousLink = links.some((link: any) => link.key === "previous");
+    if (!hasPreviousLink) {
       continue;
     }
 
     const targetFile = app.vault.getAbstractFileByPath(sourcePath);
-    if (!(targetFile instanceof TFile)) {
-      continue;
-    }
-
-    const previousLinkText = getPreviousLinkpath(app, targetFile);
-    if (!previousLinkText) {
-      continue;
-    }
-
-    // Add only if the `previous` field points to the current note.
-    if (previousLinkText === file.basename || previousLinkText === currentPath) {
+    if (targetFile instanceof TFile) {
       nextNotes.push(targetFile);
     }
   }
@@ -124,7 +120,7 @@ export async function setPreviousProperty(app: App, file: TFile, previousLink: s
 export async function findLastNote(app: App, startNote: TFile, placeholder: string = "Select the next branch..."): Promise<TFile | null> {
   let lastNote = startNote;
   let startTime = Date.now();
-  const TIMEOUT_MS = 5000;
+  const TIMEOUT_MS = 10000;
 
   while (true) {
     if (Date.now() - startTime > TIMEOUT_MS) {
