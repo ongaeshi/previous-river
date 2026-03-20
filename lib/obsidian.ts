@@ -125,7 +125,49 @@ export async function setPreviousProperty(app: App, file: TFile, previousLink: s
   });
 }
 
+function buildReverseCache(app: App): Record<string, string[]> {
+  const resolvedLinks = app.metadataCache.resolvedLinks;
+  const cache: Record<string, string[]> = {};
+
+  for (const sourcePath in resolvedLinks) {
+    if (!Object.prototype.hasOwnProperty.call(resolvedLinks, sourcePath)) continue;
+
+    const targets = resolvedLinks[sourcePath];
+    for (const targetPath in targets) {
+      if (!Object.prototype.hasOwnProperty.call(targets, targetPath)) continue;
+
+      if (!cache[targetPath]) cache[targetPath] = [];
+      cache[targetPath].push(sourcePath);
+    }
+  }
+  return cache;
+}
+
+export function getNextNotesWithCache(app: App, file: TFile, reverseCache: Record<string, string[]>): TFile[] {
+  const currentPath = file.path;
+  const nextNotes: TFile[] = [];
+
+  const sourcePaths = reverseCache[currentPath];
+  if (!sourcePaths) return nextNotes;
+
+  for (const sourcePath of sourcePaths) {
+    const targetFile = app.vault.getAbstractFileByPath(sourcePath);
+    if (!(targetFile instanceof TFile)) continue;
+
+    const previousLinkText = getPreviousLinkpath(app, targetFile);
+    if (!previousLinkText) continue;
+
+    // Add only if the `previous` field points to the current note.
+    if (previousLinkText === file.basename || previousLinkText === currentPath) {
+      nextNotes.push(targetFile);
+    }
+  }
+
+  return nextNotes;
+}
+
 export async function findLastNote(app: App, startNote: TFile, placeholder: string = "Select the next branch..."): Promise<TFile | null> {
+  const reverseCache = buildReverseCache(app);
   let lastNote = startNote;
   let startTime = Date.now();
   const TIMEOUT_MS = 10000;
@@ -136,7 +178,7 @@ export async function findLastNote(app: App, startNote: TFile, placeholder: stri
       break;
     }
 
-    const nextNotes = getNextNotes(app, lastNote);
+    const nextNotes = getNextNotesWithCache(app, lastNote, reverseCache);
     if (nextNotes.length === 0 || nextNotes.includes(startNote)) {
       break;
     }
