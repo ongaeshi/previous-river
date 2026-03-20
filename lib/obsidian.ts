@@ -123,7 +123,15 @@ export async function setPreviousProperty(app: App, file: TFile, previousLink: s
 
 export async function findLastNote(app: App, startNote: TFile, placeholder: string = "Select the next branch..."): Promise<TFile | null> {
   let lastNote = startNote;
+  let startTime = Date.now();
+  const TIMEOUT_MS = 5000;
+
   while (true) {
+    if (Date.now() - startTime > TIMEOUT_MS) {
+      new Notice("findLastNote search timed out and was aborted.");
+      break;
+    }
+
     const nextNotes = getNextNotes(app, lastNote);
     if (nextNotes.length === 0 || nextNotes.includes(startNote)) {
       break;
@@ -144,6 +152,7 @@ export async function findLastNote(app: App, startNote: TFile, placeholder: stri
       }
 
       lastNote = selectedNote;
+      startTime = Date.now();
     }
   }
   return lastNote;
