@@ -1,5 +1,9 @@
 # History
 
+## 0.3.0 (2026-03-26)
+- **Fast find-last-note**: Significantly improved the performance of finding the last note by building an O(1) reverse cache, eliminating UI freezes in large vaults.
+- **Improved next note lookup**: Optimized the speed of finding next notes by using a highly efficient loop over `resolvedLinks`.
+
 ## 0.2.1 (2026-03-15)
 - Remove redundant async/await.
 
