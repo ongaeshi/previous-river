@@ -169,15 +169,8 @@ export function getNextNotesWithCache(app: App, file: TFile, reverseCache: Recor
 export async function findLastNote(app: App, startNote: TFile, placeholder: string = "Select the next branch..."): Promise<TFile | null> {
   const reverseCache = buildReverseCache(app);
   let lastNote = startNote;
-  let startTime = Date.now();
-  const TIMEOUT_MS = 10000;
 
   while (true) {
-    if (Date.now() - startTime > TIMEOUT_MS) {
-      new Notice("findLastNote search timed out and was aborted.");
-      break;
-    }
-
     const nextNotes = getNextNotesWithCache(app, lastNote, reverseCache);
     if (nextNotes.length === 0 || nextNotes.includes(startNote)) {
       break;
@@ -198,7 +191,6 @@ export async function findLastNote(app: App, startNote: TFile, placeholder: stri
       }
 
       lastNote = selectedNote;
-      startTime = Date.now();
     }
   }
   return lastNote;
