@@ -239,12 +239,12 @@ export async function copyNextNotesListCommand(app: App) {
 
     function dfs(current: TFile, depth: number) {
         if (visited.has(current.path)) {
-            nodes.push({ file: current, depth, isCycle: true });
             return;
         }
         
         visited.add(current.path);
-        nodes.push({ file: current, depth, isCycle: false });
+        const nodeMeta: NodeMeta = { file: current, depth, isCycle: false };
+        nodes.push(nodeMeta);
 
         const nextNotes = getNextNotes(app, current);
         if (nextNotes.length > 1) {
@@ -252,6 +252,10 @@ export async function copyNextNotesListCommand(app: App) {
         }
 
         for (const nextNote of nextNotes) {
+            if (visited.has(nextNote.path)) {
+                nodeMeta.isCycle = true;
+                continue;
+            }
             dfs(nextNote, depth + 1);
         }
     }
