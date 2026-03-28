@@ -227,25 +227,44 @@ export async function copyNextNotesListCommand(app: App) {
         return;
     }
 
-    const list: string[] = [];
+    interface NodeMeta {
+        file: TFile;
+        depth: number;
+        isCycle: boolean;
+    }
+
+    const nodes: NodeMeta[] = [];
     const visited = new Set<string>();
-    const queue: TFile[] = [file];
+    let hasBranches = false;
 
-    while (queue.length > 0) {
-        const current = queue.shift()!;
+    function dfs(current: TFile, depth: number) {
         if (visited.has(current.path)) {
-            continue; // Cycle detected
+            nodes.push({ file: current, depth, isCycle: true });
+            return;
         }
+        
         visited.add(current.path);
-
-        list.push(`- [[${current.basename}]]`);
+        nodes.push({ file: current, depth, isCycle: false });
 
         const nextNotes = getNextNotes(app, current);
-        // Add next notes to the queue to traverse them
-        queue.push(...nextNotes);
+        if (nextNotes.length > 1) {
+            hasBranches = true;
+        }
+
+        for (const nextNote of nextNotes) {
+            dfs(nextNote, depth + 1);
+        }
     }
+
+    dfs(file, 0);
+
+    const list = nodes.map(node => {
+        const indent = hasBranches ? "\t".repeat(node.depth) : "";
+        const suffix = node.isCycle ? " 🔄" : "";
+        return `${indent}- [[${node.file.basename}]]${suffix}`;
+    });
 
     const text = list.join("\n");
     await navigator.clipboard.writeText(text);
-    new Notice("Copied next notes list to clipboard.");
+    new Notice(hasBranches ? "Copied next notes tree to clipboard." : "Copied next notes list to clipboard.");
 }
