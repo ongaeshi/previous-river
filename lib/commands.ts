@@ -220,3 +220,32 @@ function getSortedMarkdownFiles(app: App): TFile[] {
         return a.basename.localeCompare(b.basename);
     });
 }
+
+export async function copyNextNotesListCommand(app: App) {
+    const file = getActiveFile(app);
+    if (!file) {
+        return;
+    }
+
+    const list: string[] = [];
+    const visited = new Set<string>();
+    const queue: TFile[] = [file];
+
+    while (queue.length > 0) {
+        const current = queue.shift()!;
+        if (visited.has(current.path)) {
+            continue; // Cycle detected
+        }
+        visited.add(current.path);
+
+        list.push(`- [[${current.basename}]]`);
+
+        const nextNotes = getNextNotes(app, current);
+        // Add next notes to the queue to traverse them
+        queue.push(...nextNotes);
+    }
+
+    const text = list.join("\n");
+    await navigator.clipboard.writeText(text);
+    new Notice("Copied next notes list to clipboard.");
+}
