@@ -125,7 +125,7 @@ export async function setPreviousProperty(app: App, file: TFile, previousLink: s
   });
 }
 
-function buildReverseCache(app: App): Record<string, string[]> {
+export function buildReverseCache(app: App): Record<string, string[]> {
   const resolvedLinks = app.metadataCache.resolvedLinks;
   const cache: Record<string, string[]> = {};
 

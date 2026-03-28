@@ -1,7 +1,7 @@
 import { App, TFile, Notice } from "obsidian";
 import { ConfirmModal } from "./ConfirmModal";
 import { NextNoteSuggestModal } from "./NextNoteSuggestModal";
-import { getActiveFile, getPreviousNote, getNextNotes, detachNote, setPreviousProperty, findLastNote, findFirstNote, isOnSamePath } from "./obsidian";
+import { getActiveFile, getPreviousNote, getNextNotes, getNextNotesWithCache, buildReverseCache, detachNote, setPreviousProperty, findLastNote, findFirstNote, isOnSamePath } from "./obsidian";
 
 export async function goToPreviousNoteCommand(app: App) {
     const file = getActiveFile(app);
@@ -237,6 +237,8 @@ export async function copyNextNotesListCommand(app: App) {
     const visited = new Set<string>();
     let hasBranches = false;
 
+    const reverseCache = buildReverseCache(app);
+
     function dfs(current: TFile, depth: number) {
         if (visited.has(current.path)) {
             return;
@@ -246,7 +248,7 @@ export async function copyNextNotesListCommand(app: App) {
         const nodeMeta: NodeMeta = { file: current, depth, isCycle: false };
         nodes.push(nodeMeta);
 
-        const nextNotes = getNextNotes(app, current);
+        const nextNotes = getNextNotesWithCache(app, current, reverseCache);
         if (nextNotes.length > 1) {
             hasBranches = true;
         }
