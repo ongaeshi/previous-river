@@ -308,7 +308,7 @@ export async function exportNextNotesToCanvasCommand(app: App) {
             x: depth * 400,
             y: y,
             width: 300,
-            height: 100
+            height: 250
         });
 
         if (y > maxUsedY) {
@@ -323,7 +323,7 @@ export async function exportNextNotesToCanvasCommand(app: App) {
                 childY = y;
                 first = false;
             } else {
-                maxUsedY += 150;
+                maxUsedY += 300;
                 childY = maxUsedY;
             }
 
