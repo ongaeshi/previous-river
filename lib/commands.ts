@@ -393,15 +393,13 @@ export async function exportNextNotesToCanvasCommand(app: App) {
     await saveCanvasData(app, generator.nodes, generator.edges, canvasName, saveDir);
 }
 
-export async function exportAllRiversToCanvasCommand(app: App) {
+async function generateAllRiversCanvas(app: App) {
     const allFiles = app.vault.getMarkdownFiles();
     const reverseCache = buildReverseCache(app);
     const generator = new CanvasGenerator(app, reverseCache);
     
     let currentY = 0;
     
-    // 1. Find all roots (nodes without a previous link or pointing to a missing file)
-    // but that have incoming links (next notes)
     for (const file of allFiles) {
         if (generator.fileToNodeId.has(file.path)) continue;
 
@@ -415,13 +413,11 @@ export async function exportAllRiversToCanvasCommand(app: App) {
         }
     }
 
-    // 2. Find any remaining interconnected cycles (no distinct root, but have valid `previous`)
     for (const file of allFiles) {
         if (generator.fileToNodeId.has(file.path)) continue;
 
         const prev = getPreviousNote(app, file);
         if (prev) {
-            // Unvisited cycle detected! It has a previous but wasn't reachable from any root.
             generator.dfs(file, 0, currentY, 1);
             currentY = generator.maxUsedY + 300;
         }
@@ -433,4 +429,15 @@ export async function exportAllRiversToCanvasCommand(app: App) {
     }
 
     await saveCanvasData(app, generator.nodes, generator.edges, "All Connected Notes.canvas", "/");
+}
+
+export function exportAllRiversToCanvasCommand(app: App) {
+    new ConfirmModal(
+        app,
+        "Export All Connected Notes",
+        "This command will scan your entire vault to find all connected notes and plot them to a Canvas. It may take some time if your vault is large. Do you want to proceed?",
+        () => {
+            void generateAllRiversCanvas(app);
+        }
+    ).open();
 }
