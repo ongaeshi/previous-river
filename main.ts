@@ -9,7 +9,8 @@ import {
   insertNoteCommand,
   insertNoteToFirstCommand,
   copyNextNotesListCommand,
-  exportNextNotesToCanvasCommand
+  exportNextNotesToCanvasCommand,
+  exportAllRiversToCanvasCommand
 } from "./lib/commands";
 
 export default class PreviousRiverPlugin extends Plugin {
@@ -72,6 +73,12 @@ export default class PreviousRiverPlugin extends Plugin {
       id: "export-next-notes-to-canvas",
       name: "Export next notes to canvas",
       callback: () => exportNextNotesToCanvasCommand(this.app),
+    });
+
+    this.addCommand({
+      id: "export-all-rivers-to-canvas",
+      name: "Export all rivers to canvas",
+      callback: () => exportAllRiversToCanvasCommand(this.app),
     });
   }
 }

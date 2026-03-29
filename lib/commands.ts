@@ -276,33 +276,25 @@ export async function copyNextNotesListCommand(app: App) {
     new Notice(hasBranches ? "Copied next notes tree to clipboard." : "Copied next notes list to clipboard.");
 }
 
-export async function exportNextNotesToCanvasCommand(app: App) {
-    const file = getActiveFile(app);
-    if (!file) {
-        return;
-    }
+class CanvasGenerator {
+    nodes: CanvasNode[] = [];
+    edges: CanvasEdge[] = [];
+    fileToNodeId = new Map<string, string>();
+    maxUsedY = 0;
+    MAX_COLUMNS = 5;
 
-    const nodes: CanvasNode[] = [];
-    const edges: CanvasEdge[] = [];
-    
-    // filePath -> canvas nodeId
-    const fileToNodeId = new Map<string, string>();
-    const reverseCache = buildReverseCache(app);
+    constructor(private app: App, private reverseCache: Record<string, string[]>) {}
 
-    let maxUsedY = 0;
-    const MAX_COLUMNS = 5;
-
-    function dfs(current: TFile, col: number, y: number, direction: number): string {
-        const existingNodeId = fileToNodeId.get(current.path);
+    dfs(current: TFile, col: number, y: number, direction: number): string {
+        const existingNodeId = this.fileToNodeId.get(current.path);
         if (existingNodeId) {
-            // Already visited this node in the graph, return its ID to link the edge
             return existingNodeId;
         }
 
         const nodeId = randomId();
-        fileToNodeId.set(current.path, nodeId);
+        this.fileToNodeId.set(current.path, nodeId);
 
-        nodes.push({
+        this.nodes.push({
             id: nodeId,
             type: "file",
             file: current.path,
@@ -312,11 +304,11 @@ export async function exportNextNotesToCanvasCommand(app: App) {
             height: 250
         });
 
-        if (y > maxUsedY) {
-            maxUsedY = y;
+        if (y > this.maxUsedY) {
+            this.maxUsedY = y;
         }
 
-        const nextNotes = getNextNotesWithCache(app, current, reverseCache);
+        const nextNotes = getNextNotesWithCache(this.app, current, this.reverseCache);
         let first = true;
         for (const nextNote of nextNotes) {
             let nextCol = col + direction;
@@ -326,20 +318,20 @@ export async function exportNextNotesToCanvasCommand(app: App) {
             if (first) {
                 first = false;
             } else {
-                maxUsedY += 300;
-                nextY = maxUsedY;
+                this.maxUsedY += 300;
+                nextY = this.maxUsedY;
             }
 
-            if (nextCol >= MAX_COLUMNS) {
-                nextCol = MAX_COLUMNS - 1;
+            if (nextCol >= this.MAX_COLUMNS) {
+                nextCol = this.MAX_COLUMNS - 1;
                 nextY += 300;
                 nextDir = -1;
-                if (nextY > maxUsedY) maxUsedY = nextY;
+                if (nextY > this.maxUsedY) this.maxUsedY = nextY;
             } else if (nextCol < 0) {
                 nextCol = 0;
                 nextY += 300;
                 nextDir = 1;
-                if (nextY > maxUsedY) maxUsedY = nextY;
+                if (nextY > this.maxUsedY) this.maxUsedY = nextY;
             }
 
             let fromSide: CanvasEdge["fromSide"] = direction === 1 ? "right" : "left";
@@ -350,8 +342,8 @@ export async function exportNextNotesToCanvasCommand(app: App) {
                 toSide = "top";
             }
 
-            const childId = dfs(nextNote, nextCol, nextY, nextDir);
-            edges.push({
+            const childId = this.dfs(nextNote, nextCol, nextY, nextDir);
+            this.edges.push({
                 id: randomId(),
                 fromNode: nodeId,
                 fromSide: fromSide,
@@ -362,15 +354,15 @@ export async function exportNextNotesToCanvasCommand(app: App) {
 
         return nodeId;
     }
+}
 
-    dfs(file, 0, 0, 1);
-
+async function saveCanvasData(app: App, nodes: CanvasNode[], edges: CanvasEdge[], preferredName: string, saveDir: string) {
     const canvasData: CanvasData = { nodes, edges };
     const canvasJson = JSON.stringify(canvasData, null, 2);
 
-    let canvasPath = `${file.basename} - Next Notes.canvas`;
-    if (file.parent && file.parent.path !== '/') {
-        canvasPath = `${file.parent.path}/${canvasPath}`;
+    let canvasPath = preferredName;
+    if (saveDir && saveDir !== '/') {
+        canvasPath = `${saveDir}/${canvasPath}`;
     }
 
     let finalPath = canvasPath;
@@ -383,4 +375,62 @@ export async function exportNextNotesToCanvasCommand(app: App) {
     const newCanvasFile = await app.vault.create(finalPath, canvasJson);
     await app.workspace.getLeaf().openFile(newCanvasFile);
     new Notice(`Created canvas: ${newCanvasFile.basename}`);
+}
+
+export async function exportNextNotesToCanvasCommand(app: App) {
+    const file = getActiveFile(app);
+    if (!file) {
+        return;
+    }
+
+    const reverseCache = buildReverseCache(app);
+    const generator = new CanvasGenerator(app, reverseCache);
+
+    generator.dfs(file, 0, 0, 1);
+
+    const canvasName = `${file.basename} - Next Notes.canvas`;
+    const saveDir = file.parent && file.parent.path !== '/' ? file.parent.path : "/";
+    await saveCanvasData(app, generator.nodes, generator.edges, canvasName, saveDir);
+}
+
+export async function exportAllRiversToCanvasCommand(app: App) {
+    const allFiles = app.vault.getMarkdownFiles();
+    const reverseCache = buildReverseCache(app);
+    const generator = new CanvasGenerator(app, reverseCache);
+    
+    let currentY = 0;
+    
+    // 1. Find all roots (nodes without a previous link or pointing to a missing file)
+    // but that have incoming links (next notes)
+    for (const file of allFiles) {
+        if (generator.fileToNodeId.has(file.path)) continue;
+
+        const prev = getPreviousNote(app, file);
+        if (!prev) {
+            const nexts = getNextNotesWithCache(app, file, reverseCache);
+            if (nexts.length > 0) {
+                generator.dfs(file, 0, currentY, 1);
+                currentY = generator.maxUsedY + 300;
+            }
+        }
+    }
+
+    // 2. Find any remaining interconnected cycles (no distinct root, but have valid `previous`)
+    for (const file of allFiles) {
+        if (generator.fileToNodeId.has(file.path)) continue;
+
+        const prev = getPreviousNote(app, file);
+        if (prev) {
+            // Unvisited cycle detected! It has a previous but wasn't reachable from any root.
+            generator.dfs(file, 0, currentY, 1);
+            currentY = generator.maxUsedY + 300;
+        }
+    }
+
+    if (generator.nodes.length === 0) {
+        new Notice("No connected notes found in the vault.");
+        return;
+    }
+
+    await saveCanvasData(app, generator.nodes, generator.edges, "All Connected Notes.canvas", "/");
 }
