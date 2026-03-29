@@ -1,4 +1,4 @@
-import { App, TFile, Notice } from "obsidian";
+import { App, TFile, Notice, Modal } from "obsidian";
 import { ConfirmModal } from "./ConfirmModal";
 import { NextNoteSuggestModal } from "./NextNoteSuggestModal";
 import { getActiveFile, getPreviousNote, getNextNotes, getNextNotesWithCache, buildReverseCache, detachNote, setPreviousProperty, findLastNote, findFirstNote, isOnSamePath } from "./obsidian";
@@ -393,14 +393,57 @@ export async function exportNextNotesToCanvasCommand(app: App) {
     await saveCanvasData(app, generator.nodes, generator.edges, canvasName, saveDir);
 }
 
+class ProgressModal extends Modal {
+    private progressBarEl: HTMLProgressElement;
+    private messageEl: HTMLDivElement;
+
+    constructor(app: App, private title: string) {
+        super(app);
+    }
+
+    onOpen() {
+        const { contentEl } = this;
+        contentEl.empty();
+        contentEl.createEl("h2", { text: this.title });
+        
+        this.messageEl = contentEl.createDiv({ text: "Starting..." });
+        this.messageEl.style.marginBottom = "10px";
+        
+        this.progressBarEl = contentEl.createEl("progress");
+        this.progressBarEl.style.width = "100%";
+        this.progressBarEl.max = 100;
+        this.progressBarEl.value = 0;
+    }
+
+    setProgress(percent: number, message: string) {
+        if (this.progressBarEl) this.progressBarEl.value = percent;
+        if (this.messageEl) this.messageEl.setText(message);
+    }
+
+    onClose() {
+        this.contentEl.empty();
+    }
+}
+
 async function generateAllRiversCanvas(app: App) {
     const allFiles = app.vault.getMarkdownFiles();
     const reverseCache = buildReverseCache(app);
     const generator = new CanvasGenerator(app, reverseCache);
     
+    const progressModal = new ProgressModal(app, "Exporting Canvas");
+    progressModal.open();
+
     let currentY = 0;
+    const total = allFiles.length * 2;
+    let processed = 0;
     
     for (const file of allFiles) {
+        processed++;
+        if (processed % 50 === 0) {
+            progressModal.setProgress(Math.floor((processed / total) * 100), `Scanning for roots... ${processed}/${allFiles.length}`);
+            await new Promise(resolve => setTimeout(resolve, 0));
+        }
+
         if (generator.fileToNodeId.has(file.path)) continue;
 
         const prev = getPreviousNote(app, file);
@@ -414,6 +457,12 @@ async function generateAllRiversCanvas(app: App) {
     }
 
     for (const file of allFiles) {
+        processed++;
+        if (processed % 50 === 0) {
+            progressModal.setProgress(Math.floor((processed / total) * 100), `Scanning for isolated cycles... ${processed - allFiles.length}/${allFiles.length}`);
+            await new Promise(resolve => setTimeout(resolve, 0));
+        }
+
         if (generator.fileToNodeId.has(file.path)) continue;
 
         const prev = getPreviousNote(app, file);
@@ -422,6 +471,8 @@ async function generateAllRiversCanvas(app: App) {
             currentY = generator.maxUsedY + 300;
         }
     }
+
+    progressModal.close();
 
     if (generator.nodes.length === 0) {
         new Notice("No connected notes found in the vault.");
