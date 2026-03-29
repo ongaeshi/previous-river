@@ -298,10 +298,10 @@ class CanvasGenerator {
             id: nodeId,
             type: "file",
             file: current.path,
-            x: col * 400,
+            x: col * 500,
             y: y,
-            width: 300,
-            height: 250
+            width: 400,
+            height: 500
         });
 
         if (y > this.maxUsedY) {
@@ -318,18 +318,18 @@ class CanvasGenerator {
             if (first) {
                 first = false;
             } else {
-                this.maxUsedY += 300;
+                this.maxUsedY += 600;
                 nextY = this.maxUsedY;
             }
 
             if (nextCol >= this.MAX_COLUMNS) {
                 nextCol = this.MAX_COLUMNS - 1;
-                nextY += 300;
+                nextY += 600;
                 nextDir = -1;
                 if (nextY > this.maxUsedY) this.maxUsedY = nextY;
             } else if (nextCol < 0) {
                 nextCol = 0;
-                nextY += 300;
+                nextY += 600;
                 nextDir = 1;
                 if (nextY > this.maxUsedY) this.maxUsedY = nextY;
             }
@@ -408,7 +408,7 @@ async function generateAllRiversCanvas(app: App) {
             const nexts = getNextNotesWithCache(app, file, reverseCache);
             if (nexts.length > 0) {
                 generator.dfs(file, 0, currentY, 1);
-                currentY = generator.maxUsedY + 300;
+                currentY = generator.maxUsedY + 1000;
             }
         }
     }
@@ -419,7 +419,7 @@ async function generateAllRiversCanvas(app: App) {
         const prev = getPreviousNote(app, file);
         if (prev) {
             generator.dfs(file, 0, currentY, 1);
-            currentY = generator.maxUsedY + 300;
+            currentY = generator.maxUsedY + 1000;
         }
     }
 
