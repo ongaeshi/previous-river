@@ -290,8 +290,9 @@ export async function exportNextNotesToCanvasCommand(app: App) {
     const reverseCache = buildReverseCache(app);
 
     let maxUsedY = 0;
+    const MAX_COLUMNS = 5;
 
-    function dfs(current: TFile, depth: number, y: number): string {
+    function dfs(current: TFile, col: number, y: number, direction: number): string {
         const existingNodeId = fileToNodeId.get(current.path);
         if (existingNodeId) {
             // Already visited this node in the graph, return its ID to link the edge
@@ -305,7 +306,7 @@ export async function exportNextNotesToCanvasCommand(app: App) {
             id: nodeId,
             type: "file",
             file: current.path,
-            x: depth * 400,
+            x: col * 400,
             y: y,
             width: 300,
             height: 250
@@ -318,29 +319,51 @@ export async function exportNextNotesToCanvasCommand(app: App) {
         const nextNotes = getNextNotesWithCache(app, current, reverseCache);
         let first = true;
         for (const nextNote of nextNotes) {
-            let childY: number;
+            let nextCol = col + direction;
+            let nextY = y;
+            let nextDir = direction;
+
             if (first) {
-                childY = y;
                 first = false;
             } else {
                 maxUsedY += 300;
-                childY = maxUsedY;
+                nextY = maxUsedY;
             }
 
-            const childId = dfs(nextNote, depth + 1, childY);
+            if (nextCol >= MAX_COLUMNS) {
+                nextCol = MAX_COLUMNS - 1;
+                nextY += 300;
+                nextDir = -1;
+                if (nextY > maxUsedY) maxUsedY = nextY;
+            } else if (nextCol < 0) {
+                nextCol = 0;
+                nextY += 300;
+                nextDir = 1;
+                if (nextY > maxUsedY) maxUsedY = nextY;
+            }
+
+            let fromSide: CanvasEdge["fromSide"] = direction === 1 ? "right" : "left";
+            let toSide: CanvasEdge["toSide"] = direction === 1 ? "left" : "right";
+
+            if (nextCol === col) {
+                fromSide = "bottom";
+                toSide = "top";
+            }
+
+            const childId = dfs(nextNote, nextCol, nextY, nextDir);
             edges.push({
                 id: randomId(),
                 fromNode: nodeId,
-                fromSide: "right",
+                fromSide: fromSide,
                 toNode: childId,
-                toSide: "left"
+                toSide: toSide
             });
         }
 
         return nodeId;
     }
 
-    dfs(file, 0, 0);
+    dfs(file, 0, 0, 1);
 
     const canvasData: CanvasData = { nodes, edges };
     const canvasJson = JSON.stringify(canvasData, null, 2);
