@@ -2,6 +2,7 @@ import { App, TFile, Notice } from "obsidian";
 import { ConfirmModal } from "./ConfirmModal";
 import { NextNoteSuggestModal } from "./NextNoteSuggestModal";
 import { getActiveFile, getPreviousNote, getNextNotes, getNextNotesWithCache, buildReverseCache, detachNote, setPreviousProperty, findLastNote, findFirstNote, isOnSamePath } from "./obsidian";
+import { CanvasData, CanvasEdge, CanvasNode, randomId } from "./canvas";
 
 export async function goToPreviousNoteCommand(app: App) {
     const file = getActiveFile(app);
@@ -273,4 +274,90 @@ export async function copyNextNotesListCommand(app: App) {
     const text = list.join("\n");
     await navigator.clipboard.writeText(text);
     new Notice(hasBranches ? "Copied next notes tree to clipboard." : "Copied next notes list to clipboard.");
+}
+
+export async function exportNextNotesToCanvasCommand(app: App) {
+    const file = getActiveFile(app);
+    if (!file) {
+        return;
+    }
+
+    const nodes: CanvasNode[] = [];
+    const edges: CanvasEdge[] = [];
+    
+    // filePath -> canvas nodeId
+    const fileToNodeId = new Map<string, string>();
+    const reverseCache = buildReverseCache(app);
+
+    let maxUsedY = 0;
+
+    function dfs(current: TFile, depth: number, y: number): string {
+        const existingNodeId = fileToNodeId.get(current.path);
+        if (existingNodeId) {
+            // Already visited this node in the graph, return its ID to link the edge
+            return existingNodeId;
+        }
+
+        const nodeId = randomId();
+        fileToNodeId.set(current.path, nodeId);
+
+        nodes.push({
+            id: nodeId,
+            type: "file",
+            file: current.path,
+            x: depth * 400,
+            y: y,
+            width: 300,
+            height: 100
+        });
+
+        if (y > maxUsedY) {
+            maxUsedY = y;
+        }
+
+        const nextNotes = getNextNotesWithCache(app, current, reverseCache);
+        let first = true;
+        for (const nextNote of nextNotes) {
+            let childY: number;
+            if (first) {
+                childY = y;
+                first = false;
+            } else {
+                maxUsedY += 150;
+                childY = maxUsedY;
+            }
+
+            const childId = dfs(nextNote, depth + 1, childY);
+            edges.push({
+                id: randomId(),
+                fromNode: nodeId,
+                fromSide: "right",
+                toNode: childId,
+                toSide: "left"
+            });
+        }
+
+        return nodeId;
+    }
+
+    dfs(file, 0, 0);
+
+    const canvasData: CanvasData = { nodes, edges };
+    const canvasJson = JSON.stringify(canvasData, null, 2);
+
+    let canvasPath = `${file.basename} - Next Notes.canvas`;
+    if (file.parent && file.parent.path !== '/') {
+        canvasPath = `${file.parent.path}/${canvasPath}`;
+    }
+
+    let finalPath = canvasPath;
+    let increment = 0;
+    while (app.vault.getAbstractFileByPath(finalPath)) {
+        increment++;
+        finalPath = canvasPath.replace('.canvas', ` ${increment}.canvas`);
+    }
+
+    const newCanvasFile = await app.vault.create(finalPath, canvasJson);
+    await app.workspace.getLeaf().openFile(newCanvasFile);
+    new Notice(`Created canvas: ${newCanvasFile.basename}`);
 }
