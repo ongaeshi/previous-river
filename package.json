@@ -3,7 +3,7 @@
 	"scripts": {
 		"check": "npx tsc --noEmit",
 		"build": "esbuild main.ts --bundle --outdir=build --external:obsidian --format=cjs --target=es2020 --platform=node && npm run copy",
-		"copy": "powershell -Command \"New-Item -ItemType Directory -Force -Path tests\\vault\\previous-river-test\\.obsidian\\plugins\\previous-river | Out-Null; Copy-Item -Path build\\main.js, manifest.json -Destination tests\\vault\\previous-river-test\\.obsidian\\plugins\\previous-river -Force\"",
+		"copy": "mkdir -p '/Users/sam1037/Documents/Obsidian remote vault/.obsidian/plugins/prev_river_extended' && cp build/main.js manifest.json '/Users/sam1037/Documents/Obsidian remote vault/.obsidian/plugins/prev_river_extended/'",
 		"copy-to-notes": "powershell -Command \"New-Item -ItemType Directory -Force -Path $env:USERPROFILE\\Doc\\notes\\.obsidian\\plugins\\previous-river | Out-Null; Copy-Item -Path build\\main.js, manifest.json -Destination $env:USERPROFILE\\Doc\\notes\\.obsidian\\plugins\\previous-river\\ -Force\"",
 		"zip": "node zip-release.mjs"
 	},
