@@ -1,7 +1,7 @@
 import { App, TFile, Notice } from "obsidian";
 import { ConfirmModal } from "./ConfirmModal";
 import { NextNoteSuggestModal } from "./NextNoteSuggestModal";
-import { getActiveFile, getPreviousNote, getNextNotes, detachNote, setPreviousProperty, findLastNote, findFirstNote, isOnSamePath } from "./obsidian";
+import { getActiveFile, getPreviousNote, getNextNotes, getNextNotesWithCache, buildReverseCache, detachNote, setPreviousProperty, findLastNote, findFirstNote, isOnSamePath } from "./obsidian";
 
 export async function goToPreviousNoteCommand(app: App) {
     const file = getActiveFile(app);
@@ -219,4 +219,58 @@ function getSortedMarkdownFiles(app: App): TFile[] {
         // Fallback to alphabetical order for files not in history
         return a.basename.localeCompare(b.basename);
     });
+}
+
+export async function copyNextNotesListCommand(app: App) {
+    const file = getActiveFile(app);
+    if (!file) {
+        return;
+    }
+
+    interface NodeMeta {
+        file: TFile;
+        depth: number;
+        isCycle: boolean;
+    }
+
+    const nodes: NodeMeta[] = [];
+    const visited = new Set<string>();
+    let hasBranches = false;
+
+    const reverseCache = buildReverseCache(app);
+
+    function dfs(current: TFile, depth: number) {
+        if (visited.has(current.path)) {
+            return;
+        }
+        
+        visited.add(current.path);
+        const nodeMeta: NodeMeta = { file: current, depth, isCycle: false };
+        nodes.push(nodeMeta);
+
+        const nextNotes = getNextNotesWithCache(app, current, reverseCache);
+        if (nextNotes.length > 1) {
+            hasBranches = true;
+        }
+
+        for (const nextNote of nextNotes) {
+            if (visited.has(nextNote.path)) {
+                nodeMeta.isCycle = true;
+                continue;
+            }
+            dfs(nextNote, depth + 1);
+        }
+    }
+
+    dfs(file, 0);
+
+    const list = nodes.map(node => {
+        const indent = hasBranches ? "\t".repeat(node.depth) : "";
+        const suffix = node.isCycle ? " 🔄" : "";
+        return `${indent}- [[${node.file.basename}]]${suffix}`;
+    });
+
+    const text = list.join("\n");
+    await navigator.clipboard.writeText(text);
+    new Notice(hasBranches ? "Copied next notes tree to clipboard." : "Copied next notes list to clipboard.");
 }
