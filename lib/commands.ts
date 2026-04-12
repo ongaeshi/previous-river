@@ -244,7 +244,7 @@ export async function copyNextNotesListCommand(app: App) {
         if (visited.has(current.path)) {
             return;
         }
-        
+
         visited.add(current.path);
         const nodeMeta: NodeMeta = { file: current, depth, isCycle: false };
         nodes.push(nodeMeta);
@@ -298,9 +298,9 @@ async function generateAllRiversCanvas(app: App) {
     const allFiles = app.vault.getMarkdownFiles();
     const reverseCache = buildReverseCache(app);
     const generator = new CanvasGenerator(app, reverseCache);
-    
+
     let currentY = 0;
-    
+
     for (const file of allFiles) {
         if (generator.fileToNodeId.has(file.path)) continue;
 
