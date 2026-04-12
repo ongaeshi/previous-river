@@ -2,6 +2,7 @@ import { App, TFile, Notice } from "obsidian";
 import { ConfirmModal } from "./ConfirmModal";
 import { NextNoteSuggestModal } from "./NextNoteSuggestModal";
 import { getActiveFile, getPreviousNote, getNextNotes, getNextNotesWithCache, buildReverseCache, detachNote, setPreviousProperty, findLastNote, findFirstNote, isOnSamePath } from "./obsidian";
+import { CanvasData, CanvasEdge, CanvasNode, randomId } from "./canvas";
 
 export async function goToPreviousNoteCommand(app: App) {
     const file = getActiveFile(app);
@@ -273,4 +274,113 @@ export async function copyNextNotesListCommand(app: App) {
     const text = list.join("\n");
     await navigator.clipboard.writeText(text);
     new Notice(hasBranches ? "Copied next notes tree to clipboard." : "Copied next notes list to clipboard.");
+}
+
+export async function exportNextNotesToCanvasCommand(app: App) {
+    const file = getActiveFile(app);
+    if (!file) {
+        return;
+    }
+
+    const nodes: CanvasNode[] = [];
+    const edges: CanvasEdge[] = [];
+    
+    // filePath -> canvas nodeId
+    const fileToNodeId = new Map<string, string>();
+    const reverseCache = buildReverseCache(app);
+
+    let maxUsedY = 0;
+    const MAX_COLUMNS = 5;
+
+    function dfs(current: TFile, col: number, y: number, direction: number): string {
+        const existingNodeId = fileToNodeId.get(current.path);
+        if (existingNodeId) {
+            // Already visited this node in the graph, return its ID to link the edge
+            return existingNodeId;
+        }
+
+        const nodeId = randomId();
+        fileToNodeId.set(current.path, nodeId);
+
+        nodes.push({
+            id: nodeId,
+            type: "file",
+            file: current.path,
+            x: col * 400,
+            y: y,
+            width: 300,
+            height: 250
+        });
+
+        if (y > maxUsedY) {
+            maxUsedY = y;
+        }
+
+        const nextNotes = getNextNotesWithCache(app, current, reverseCache);
+        let first = true;
+        for (const nextNote of nextNotes) {
+            let nextCol = col + direction;
+            let nextY = y;
+            let nextDir = direction;
+
+            if (first) {
+                first = false;
+            } else {
+                maxUsedY += 300;
+                nextY = maxUsedY;
+            }
+
+            if (nextCol >= MAX_COLUMNS) {
+                nextCol = MAX_COLUMNS - 1;
+                nextY += 300;
+                nextDir = -1;
+                if (nextY > maxUsedY) maxUsedY = nextY;
+            } else if (nextCol < 0) {
+                nextCol = 0;
+                nextY += 300;
+                nextDir = 1;
+                if (nextY > maxUsedY) maxUsedY = nextY;
+            }
+
+            let fromSide: CanvasEdge["fromSide"] = direction === 1 ? "right" : "left";
+            let toSide: CanvasEdge["toSide"] = direction === 1 ? "left" : "right";
+
+            if (nextCol === col) {
+                fromSide = "bottom";
+                toSide = "top";
+            }
+
+            const childId = dfs(nextNote, nextCol, nextY, nextDir);
+            edges.push({
+                id: randomId(),
+                fromNode: nodeId,
+                fromSide: fromSide,
+                toNode: childId,
+                toSide: toSide
+            });
+        }
+
+        return nodeId;
+    }
+
+    dfs(file, 0, 0, 1);
+
+    const canvasData: CanvasData = { nodes, edges };
+    const canvasJson = JSON.stringify(canvasData, null, 2);
+
+    let canvasPath = `${file.basename} - Next Notes.canvas`;
+    if (file.parent && file.parent.path !== '/') {
+        canvasPath = `${file.parent.path}/${canvasPath}`;
+    }
+
+    let finalPath = canvasPath;
+    let increment = 0;
+    while (app.vault.getAbstractFileByPath(finalPath)) {
+        increment++;
+        finalPath = canvasPath.replace('.canvas', ` ${increment}.canvas`);
+    }
+
+    const newCanvasFile = await app.vault.create(finalPath, canvasJson);
+    await app.workspace.getLeaf().openFile(newCanvasFile);
+    new Notice(`Created canvas: ${newCanvasFile.basename}`);
 }
