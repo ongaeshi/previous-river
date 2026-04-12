@@ -82,11 +82,15 @@ export class CanvasGenerator {
             }
 
             let isLoop = this.fileToNodeId.has(nextNote.path);
+            let isSelfLoop = current.path === nextNote.path;
 
             let fromSide: CanvasEdge["fromSide"] = "right";
             let toSide: CanvasEdge["toSide"] = "left";
 
-            if (nextCol === col) {
+            if (isSelfLoop) {
+                fromSide = "right";
+                toSide = "top";
+            } else if (nextCol === col) {
                 fromSide = "bottom";
                 toSide = "top";
             } else if (isWrapped) {
