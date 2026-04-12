@@ -35,7 +35,7 @@ export class CanvasGenerator {
     maxUsedY = 0;
     MAX_COLUMNS = 5;
 
-    constructor(private app: App, private reverseCache: Record<string, string[]>) {}
+    constructor(private app: App, private reverseCache: Record<string, string[]>) { }
 
     dfs(current: TFile, col: number, y: number, direction: number): string {
         const existingNodeId = this.fileToNodeId.get(current.path);
@@ -63,9 +63,8 @@ export class CanvasGenerator {
         const nextNotes = getNextNotesWithCache(this.app, current, this.reverseCache);
         let first = true;
         for (const nextNote of nextNotes) {
-            let nextCol = col + direction;
+            let nextCol = col + 1; // Always progress left to right
             let nextY = y;
-            let nextDir = direction;
 
             if (first) {
                 first = false;
@@ -74,27 +73,31 @@ export class CanvasGenerator {
                 nextY = this.maxUsedY;
             }
 
+            let isWrapped = false;
             if (nextCol >= this.MAX_COLUMNS) {
-                nextCol = this.MAX_COLUMNS - 1;
-                nextY += 600;
-                nextDir = -1;
-                if (nextY > this.maxUsedY) this.maxUsedY = nextY;
-            } else if (nextCol < 0) {
                 nextCol = 0;
                 nextY += 600;
-                nextDir = 1;
                 if (nextY > this.maxUsedY) this.maxUsedY = nextY;
+                isWrapped = true;
             }
 
-            let fromSide: CanvasEdge["fromSide"] = direction === 1 ? "right" : "left";
-            let toSide: CanvasEdge["toSide"] = direction === 1 ? "left" : "right";
+            let isLoop = this.fileToNodeId.has(nextNote.path);
+
+            let fromSide: CanvasEdge["fromSide"] = "right";
+            let toSide: CanvasEdge["toSide"] = "left";
 
             if (nextCol === col) {
                 fromSide = "bottom";
                 toSide = "top";
+            } else if (isWrapped) {
+                fromSide = "bottom";
+                toSide = "top";
+            } else if (isLoop) {
+                fromSide = "top";
+                toSide = "top";
             }
 
-            const childId = this.dfs(nextNote, nextCol, nextY, nextDir);
+            const childId = this.dfs(nextNote, nextCol, nextY, 1);
             this.edges.push({
                 id: randomId(),
                 fromNode: nodeId,
