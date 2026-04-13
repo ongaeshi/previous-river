@@ -290,7 +290,7 @@ export async function exportNextNotesToCanvasCommand(app: App) {
     generator.dfs(file, 0, 0, 1);
 
     const canvasName = `${file.basename} - Next Notes.canvas`;
-    const saveDir = file.parent && file.parent.path !== '/' ? file.parent.path : "/";
+    const saveDir = app.fileManager.getNewFileParent(file.path, file.basename + ".md").path;
     await saveCanvasData(app, generator.nodes, generator.edges, canvasName, saveDir);
 }
 
@@ -329,7 +329,15 @@ async function generateAllRiversCanvas(app: App) {
         return;
     }
 
-    await saveCanvasData(app, generator.nodes, generator.edges, "All Connected Notes.canvas", "/");
+    const activeFile = getActiveFile(app);
+    const sourcePath = activeFile ? activeFile.path : "";
+    const canvasName = "All Connected Notes.canvas";
+    
+    // 拡張子が .canvas だとアタッチメントフォルダ等に振り分けられるのを防ぐため、
+    // 第2引数は .md として判定させ、「新規ファイルの置き場所」を参照させます
+    const saveDir = app.fileManager.getNewFileParent(sourcePath, "All Connected Notes.md").path;
+
+    await saveCanvasData(app, generator.nodes, generator.edges, canvasName, saveDir);
 }
 
 export function exportAllRiversToCanvasCommand(app: App) {
