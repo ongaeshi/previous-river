@@ -3,6 +3,7 @@ import { ConfirmModal } from "./ConfirmModal";
 import { NextNoteSuggestModal } from "./NextNoteSuggestModal";
 import { getActiveFile, getPreviousNote, getNextNotes, getNextNotesWithCache, buildReverseCache, detachNote, setPreviousProperty, findLastNote, findFirstNote, isOnSamePath } from "./obsidian";
 import { CanvasGenerator, saveCanvasData } from "./canvas";
+import { ExportFilterModal } from "./ExportFilterModal";
 
 export async function goToPreviousNoteCommand(app: App) {
     const file = getActiveFile(app);
@@ -349,4 +350,104 @@ export function exportAllRiversToCanvasCommand(app: App) {
             void generateAllRiversCanvas(app);
         }
     ).open();
+}
+
+export function exportFilteredRiversToCanvasCommand(app: App) {
+    new ExportFilterModal(app, async (result) => {
+        let { directory, tag, link } = result;
+        if (!directory && !tag && !link) {
+            new Notice("Please provide at least one filter criterion.");
+            return;
+        }
+
+        tag = tag.trim();
+        link = link.trim();
+        directory = directory.trim();
+
+        if (tag && !tag.startsWith("#")) {
+            tag = "#" + tag;
+        }
+
+        const allFiles = app.vault.getMarkdownFiles();
+        const matchedFiles: TFile[] = [];
+
+        for (const file of allFiles) {
+            let match = true;
+
+            if (directory && !file.path.includes(directory)) {
+                match = false;
+            }
+
+            if (match && (tag || link)) {
+                const cache = app.metadataCache.getFileCache(file);
+                
+                if (tag) {
+                    const fileTags = cache?.tags?.map(t => t.tag) || [];
+                    const frontmatterTagsFromCache = cache?.frontmatter?.tags;
+                    
+                    let fmTags: string[] = [];
+                    if (Array.isArray(frontmatterTagsFromCache)) {
+                        fmTags = frontmatterTagsFromCache;
+                    } else if (typeof frontmatterTagsFromCache === 'string') {
+                        fmTags = frontmatterTagsFromCache.split(",").map(t => t.trim());
+                    }
+
+                    const allTags = [...fileTags, ...fmTags.map(t => t.startsWith("#") ? t : "#" + t)];
+
+                    const hasTag = allTags.some(t => t === tag || t.startsWith(tag + "/"));
+                    if (!hasTag) match = false;
+                }
+
+                if (match && link) {
+                    const fileLinks = cache?.links?.map(l => l.link) || [];
+                    const fileEmbeds = cache?.embeds?.map(e => e.link) || [];
+                    const fileFrontmatterLinks = cache?.frontmatterLinks?.map(l => l.link) || [];
+                    const allLinks = [...fileLinks, ...fileEmbeds, ...fileFrontmatterLinks];
+                    // Also simple search for text in file basename 
+                    // This is helpful if link is just text
+                    const hasLink = allLinks.some(l => l.includes(link)) || file.basename.includes(link);
+                    if (!hasLink) match = false;
+                }
+            }
+
+            if (match) {
+                matchedFiles.push(file);
+            }
+        }
+
+        if (matchedFiles.length === 0) {
+            new Notice("No files matched the given criteria.");
+            return;
+        }
+
+        const roots = new Set<TFile>();
+        for (const file of matchedFiles) {
+            const root = findFirstNote(app, file);
+            roots.add(root);
+        }
+
+        const reverseCache = buildReverseCache(app);
+        const generator = new CanvasGenerator(app, reverseCache);
+        let currentY = 0;
+
+        for (const root of roots) {
+            if (generator.fileToNodeId.has(root.path)) continue;
+            
+            generator.dfs(root, 0, currentY, 1);
+            currentY = generator.maxUsedY + 1000;
+        }
+        
+        if (generator.nodes.length === 0) {
+             new Notice("No connected notes found for the matched files.");
+             return;
+        }
+
+        const activeFile = getActiveFile(app);
+        const sourcePath = activeFile ? activeFile.path : "";
+        const canvasName = "Filtered Connected Notes.canvas";
+        const saveDir = app.fileManager.getNewFileParent(sourcePath, "Filtered Connected Notes.md").path;
+
+        await saveCanvasData(app, generator.nodes, generator.edges, canvasName, saveDir);
+
+    }).open();
 }
