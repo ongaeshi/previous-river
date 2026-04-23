@@ -2,7 +2,7 @@ import { App, TFile, Notice } from "obsidian";
 import { ConfirmModal } from "./ConfirmModal";
 import { NextNoteSuggestModal } from "./NextNoteSuggestModal";
 import { getActiveFile, getPreviousNote, getNextNotes, getNextNotesWithCache, buildReverseCache, detachNote, setPreviousProperty, findLastNote, findFirstNote, isOnSamePath } from "./obsidian";
-import { CanvasData, CanvasEdge, CanvasNode, randomId } from "./canvas";
+import { CanvasGenerator, saveCanvasData } from "./canvas";
 
 export async function goToPreviousNoteCommand(app: App) {
     const file = getActiveFile(app);
@@ -244,7 +244,7 @@ export async function copyNextNotesListCommand(app: App) {
         if (visited.has(current.path)) {
             return;
         }
-        
+
         visited.add(current.path);
         const nodeMeta: NodeMeta = { file: current, depth, isCycle: false };
         nodes.push(nodeMeta);
@@ -276,111 +276,77 @@ export async function copyNextNotesListCommand(app: App) {
     new Notice(hasBranches ? "Copied next notes tree to clipboard." : "Copied next notes list to clipboard.");
 }
 
+
+
 export async function exportNextNotesToCanvasCommand(app: App) {
     const file = getActiveFile(app);
     if (!file) {
         return;
     }
 
-    const nodes: CanvasNode[] = [];
-    const edges: CanvasEdge[] = [];
-    
-    // filePath -> canvas nodeId
-    const fileToNodeId = new Map<string, string>();
     const reverseCache = buildReverseCache(app);
+    const generator = new CanvasGenerator(app, reverseCache);
 
-    let maxUsedY = 0;
-    const MAX_COLUMNS = 5;
+    generator.dfs(file, 0, 0, 1);
 
-    function dfs(current: TFile, col: number, y: number, direction: number): string {
-        const existingNodeId = fileToNodeId.get(current.path);
-        if (existingNodeId) {
-            // Already visited this node in the graph, return its ID to link the edge
-            return existingNodeId;
-        }
+    const canvasName = `${file.basename} - Next Notes.canvas`;
+    const saveDir = app.fileManager.getNewFileParent(file.path, file.basename + ".md").path;
+    await saveCanvasData(app, generator.nodes, generator.edges, canvasName, saveDir);
+}
 
-        const nodeId = randomId();
-        fileToNodeId.set(current.path, nodeId);
+async function generateAllRiversCanvas(app: App) {
+    const allFiles = app.vault.getMarkdownFiles();
+    const reverseCache = buildReverseCache(app);
+    const generator = new CanvasGenerator(app, reverseCache);
 
-        nodes.push({
-            id: nodeId,
-            type: "file",
-            file: current.path,
-            x: col * 400,
-            y: y,
-            width: 300,
-            height: 250
-        });
+    let currentY = 0;
 
-        if (y > maxUsedY) {
-            maxUsedY = y;
-        }
+    for (const file of allFiles) {
+        if (generator.fileToNodeId.has(file.path)) continue;
 
-        const nextNotes = getNextNotesWithCache(app, current, reverseCache);
-        let first = true;
-        for (const nextNote of nextNotes) {
-            let nextCol = col + direction;
-            let nextY = y;
-            let nextDir = direction;
-
-            if (first) {
-                first = false;
-            } else {
-                maxUsedY += 300;
-                nextY = maxUsedY;
+        const prev = getPreviousNote(app, file);
+        if (!prev) {
+            const nexts = getNextNotesWithCache(app, file, reverseCache);
+            if (nexts.length > 0) {
+                generator.dfs(file, 0, currentY, 1);
+                currentY = generator.maxUsedY + 1000;
             }
-
-            if (nextCol >= MAX_COLUMNS) {
-                nextCol = MAX_COLUMNS - 1;
-                nextY += 300;
-                nextDir = -1;
-                if (nextY > maxUsedY) maxUsedY = nextY;
-            } else if (nextCol < 0) {
-                nextCol = 0;
-                nextY += 300;
-                nextDir = 1;
-                if (nextY > maxUsedY) maxUsedY = nextY;
-            }
-
-            let fromSide: CanvasEdge["fromSide"] = direction === 1 ? "right" : "left";
-            let toSide: CanvasEdge["toSide"] = direction === 1 ? "left" : "right";
-
-            if (nextCol === col) {
-                fromSide = "bottom";
-                toSide = "top";
-            }
-
-            const childId = dfs(nextNote, nextCol, nextY, nextDir);
-            edges.push({
-                id: randomId(),
-                fromNode: nodeId,
-                fromSide: fromSide,
-                toNode: childId,
-                toSide: toSide
-            });
         }
-
-        return nodeId;
     }
 
-    dfs(file, 0, 0, 1);
+    for (const file of allFiles) {
+        if (generator.fileToNodeId.has(file.path)) continue;
 
-    const canvasData: CanvasData = { nodes, edges };
-    const canvasJson = JSON.stringify(canvasData, null, 2);
-
-    let canvasPath = `${file.basename} - Next Notes.canvas`;
-    if (file.parent && file.parent.path !== '/') {
-        canvasPath = `${file.parent.path}/${canvasPath}`;
+        const prev = getPreviousNote(app, file);
+        if (prev) {
+            generator.dfs(file, 0, currentY, 1);
+            currentY = generator.maxUsedY + 1000;
+        }
     }
 
-    let finalPath = canvasPath;
-    let increment = 0;
-    while (app.vault.getAbstractFileByPath(finalPath)) {
-        increment++;
-        finalPath = canvasPath.replace('.canvas', ` ${increment}.canvas`);
+    if (generator.nodes.length === 0) {
+        new Notice("No connected notes found in the vault.");
+        return;
     }
 
-    const newCanvasFile = await app.vault.create(finalPath, canvasJson);
-    await app.workspace.getLeaf().openFile(newCanvasFile);
-    new Notice(`Created canvas: ${newCanvasFile.basename}`);
+    const activeFile = getActiveFile(app);
+    const sourcePath = activeFile ? activeFile.path : "";
+    const canvasName = "All Connected Notes.canvas";
+    
+    // 拡張子が .canvas だとアタッチメントフォルダ等に振り分けられるのを防ぐため、
+    // 第2引数は .md として判定させ、「新規ファイルの置き場所」を参照させます
+    const saveDir = app.fileManager.getNewFileParent(sourcePath, "All Connected Notes.md").path;
+
+    await saveCanvasData(app, generator.nodes, generator.edges, canvasName, saveDir);
+}
+
+export function exportAllRiversToCanvasCommand(app: App) {
+    new ConfirmModal(
+        app,
+        "Export All Connected Notes",
+        "This command will scan your entire vault to find all connected notes and plot them to a Canvas. It may take some time if your vault is large. Do you want to proceed?",
+        () => {
+            void generateAllRiversCanvas(app);
+        }
+    ).open();
 }
