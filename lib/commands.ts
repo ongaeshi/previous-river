@@ -354,7 +354,7 @@ export function exportAllRiversToCanvasCommand(app: App) {
 
 export function exportFilteredRiversToCanvasCommand(app: App) {
     new ExportFilterModal(app, async (result) => {
-        let { directory, tag, link, property } = result;
+        let { directory, tag, link, property, width, height, maxColumns } = result;
         if (!directory && !tag && !link) {
             new Notice("Please provide at least one filter criterion.");
             return;
@@ -432,7 +432,18 @@ export function exportFilteredRiversToCanvasCommand(app: App) {
         }
 
         const reverseCache = buildReverseCache(app);
-        const generator = new CanvasGenerator(app, reverseCache);
+        
+        const numWidth = parseInt(width);
+        const numHeight = parseInt(height);
+        const numMaxColumns = parseInt(maxColumns);
+        
+        const generatorOptions = {
+            width: isNaN(numWidth) ? 400 : numWidth,
+            height: isNaN(numHeight) ? 500 : numHeight,
+            maxColumns: isNaN(numMaxColumns) ? 5 : numMaxColumns
+        };
+        
+        const generator = new CanvasGenerator(app, reverseCache, generatorOptions);
         let currentY = 0;
 
         for (const root of roots) {

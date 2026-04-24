@@ -5,6 +5,9 @@ export interface ExportFilterResult {
     tag: string;
     link: string;
     property: string;
+    width: string;
+    height: string;
+    maxColumns: string;
 }
 
 export class ExportFilterModal extends Modal {
@@ -12,6 +15,9 @@ export class ExportFilterModal extends Modal {
     tag: string;
     link: string;
     property: string;
+    width: string;
+    height: string;
+    maxColumns: string;
     onSubmit: (result: ExportFilterResult) => void;
 
     constructor(app: App, onSubmit: (result: ExportFilterResult) => void) {
@@ -21,6 +27,9 @@ export class ExportFilterModal extends Modal {
         this.tag = '';
         this.link = '';
         this.property = '';
+        this.width = '400';
+        this.height = '500';
+        this.maxColumns = '5';
     }
 
     onOpen() {
@@ -52,12 +61,41 @@ export class ExportFilterModal extends Modal {
                 .onChange(value => this.property = value));
 
         new Setting(contentEl)
+            .setName("Width (横幅)")
+            .setDesc("Default: 400")
+            .addText(text => text
+                .setValue(this.width)
+                .onChange(value => this.width = value));
+
+        new Setting(contentEl)
+            .setName("Height (縦幅)")
+            .setDesc("Default: 500")
+            .addText(text => text
+                .setValue(this.height)
+                .onChange(value => this.height = value));
+
+        new Setting(contentEl)
+            .setName("Max Columns (折り返し数)")
+            .setDesc("Default: 5")
+            .addText(text => text
+                .setValue(this.maxColumns)
+                .onChange(value => this.maxColumns = value));
+
+        new Setting(contentEl)
             .addButton(btn => btn
                 .setButtonText("Export")
                 .setCta()
                 .onClick(() => {
                     this.close();
-                    this.onSubmit({ directory: this.directory, tag: this.tag, link: this.link, property: this.property });
+                    this.onSubmit({ 
+                        directory: this.directory, 
+                        tag: this.tag, 
+                        link: this.link, 
+                        property: this.property,
+                        width: this.width,
+                        height: this.height,
+                        maxColumns: this.maxColumns
+                    });
                 }));
     }
 
