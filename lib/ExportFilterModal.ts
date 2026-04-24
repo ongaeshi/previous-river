@@ -4,12 +4,14 @@ export interface ExportFilterResult {
     directory: string;
     tag: string;
     link: string;
+    property: string;
 }
 
 export class ExportFilterModal extends Modal {
     directory: string;
     tag: string;
     link: string;
+    property: string;
     onSubmit: (result: ExportFilterResult) => void;
 
     constructor(app: App, onSubmit: (result: ExportFilterResult) => void) {
@@ -18,6 +20,7 @@ export class ExportFilterModal extends Modal {
         this.directory = '';
         this.tag = '';
         this.link = '';
+        this.property = '';
     }
 
     onOpen() {
@@ -37,10 +40,16 @@ export class ExportFilterModal extends Modal {
                 .onChange(value => this.tag = value));
 
         new Setting(contentEl)
-            .setName("Link / Text")
-            .setDesc("Export notes containing this link or text (e.g., Some Concept)")
+            .setName("Link")
+            .setDesc("Export notes containing this link (e.g., Some Concept)")
             .addText(text => text
                 .onChange(value => this.link = value));
+
+        new Setting(contentEl)
+            .setName("Property")
+            .setDesc("Use with Link: Only search links in this property")
+            .addText(text => text
+                .onChange(value => this.property = value));
 
         new Setting(contentEl)
             .addButton(btn => btn
@@ -48,7 +57,7 @@ export class ExportFilterModal extends Modal {
                 .setCta()
                 .onClick(() => {
                     this.close();
-                    this.onSubmit({ directory: this.directory, tag: this.tag, link: this.link });
+                    this.onSubmit({ directory: this.directory, tag: this.tag, link: this.link, property: this.property });
                 }));
     }
 

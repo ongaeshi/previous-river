@@ -354,7 +354,7 @@ export function exportAllRiversToCanvasCommand(app: App) {
 
 export function exportFilteredRiversToCanvasCommand(app: App) {
     new ExportFilterModal(app, async (result) => {
-        let { directory, tag, link } = result;
+        let { directory, tag, link, property } = result;
         if (!directory && !tag && !link) {
             new Notice("Please provide at least one filter criterion.");
             return;
@@ -363,6 +363,7 @@ export function exportFilteredRiversToCanvasCommand(app: App) {
         tag = tag.trim();
         link = link.trim();
         directory = directory.trim();
+        property = property?.trim();
 
         if (tag && !tag.startsWith("#")) {
             tag = "#" + tag;
@@ -399,14 +400,18 @@ export function exportFilteredRiversToCanvasCommand(app: App) {
                 }
 
                 if (match && link) {
-                    const fileLinks = cache?.links?.map(l => l.link) || [];
-                    const fileEmbeds = cache?.embeds?.map(e => e.link) || [];
-                    const fileFrontmatterLinks = cache?.frontmatterLinks?.map(l => l.link) || [];
-                    const allLinks = [...fileLinks, ...fileEmbeds, ...fileFrontmatterLinks];
-                    // Also simple search for text in file basename 
-                    // This is helpful if link is just text
-                    const hasLink = allLinks.some(l => l.includes(link)) || file.basename.includes(link);
-                    if (!hasLink) match = false;
+                    if (property) {
+                        const fileFrontmatterLinks = cache?.frontmatterLinks?.filter(l => l.key === property) || [];
+                        const hasLink = fileFrontmatterLinks.some(l => l.link.includes(link));
+                        if (!hasLink) match = false;
+                    } else {
+                        const fileLinks = cache?.links?.map(l => l.link) || [];
+                        const fileEmbeds = cache?.embeds?.map(e => e.link) || [];
+                        const fileFrontmatterLinks = cache?.frontmatterLinks?.map(l => l.link) || [];
+                        const allLinks = [...fileLinks, ...fileEmbeds, ...fileFrontmatterLinks];
+                        const hasLink = allLinks.some(l => l.includes(link));
+                        if (!hasLink) match = false;
+                    }
                 }
             }
 
