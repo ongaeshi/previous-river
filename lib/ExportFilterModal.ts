@@ -8,6 +8,7 @@ export interface ExportFilterResult {
     width: string;
     height: string;
     maxColumns: string;
+    exportAll: boolean;
 }
 
 export class ExportFilterModal extends Modal {
@@ -18,6 +19,7 @@ export class ExportFilterModal extends Modal {
     width: string;
     height: string;
     maxColumns: string;
+    exportAll: boolean;
     onSubmit: (result: ExportFilterResult) => void;
 
     constructor(app: App, onSubmit: (result: ExportFilterResult) => void) {
@@ -30,35 +32,49 @@ export class ExportFilterModal extends Modal {
         this.width = '400';
         this.height = '500';
         this.maxColumns = '5';
+        this.exportAll = false;
     }
 
     onOpen() {
         const { contentEl } = this;
         contentEl.createEl("h2", { text: "Export Connected Notes by Filter" });
 
-        new Setting(contentEl)
+        const dirSetting = new Setting(contentEl)
             .setName("Directory")
             .setDesc("Export notes under this directory (e.g., 01_Projects)")
             .addText(text => text
                 .onChange(value => this.directory = value));
 
-        new Setting(contentEl)
+        const tagSetting = new Setting(contentEl)
             .setName("Tag")
             .setDesc("Export notes containing this tag (e.g., #idea)")
             .addText(text => text
                 .onChange(value => this.tag = value));
 
-        new Setting(contentEl)
+        const linkSetting = new Setting(contentEl)
             .setName("Link")
             .setDesc("Export notes containing this link (e.g., Some Concept)")
             .addText(text => text
                 .onChange(value => this.link = value));
 
-        new Setting(contentEl)
+        const propSetting = new Setting(contentEl)
             .setName("Property")
             .setDesc("Use with Link: Only search links in this property")
             .addText(text => text
                 .onChange(value => this.property = value));
+
+        new Setting(contentEl)
+            .setName("Search all elements (すべての要素を探索する)")
+            .setDesc("Ignore filters above and export all connected notes")
+            .addToggle(toggle => toggle
+                .setValue(this.exportAll)
+                .onChange(value => {
+                    this.exportAll = value;
+                    dirSetting.setDisabled(value);
+                    tagSetting.setDisabled(value);
+                    linkSetting.setDisabled(value);
+                    propSetting.setDisabled(value);
+                }));
 
         new Setting(contentEl)
             .setName("Width (横幅)")
@@ -94,7 +110,8 @@ export class ExportFilterModal extends Modal {
                         property: this.property,
                         width: this.width,
                         height: this.height,
-                        maxColumns: this.maxColumns
+                        maxColumns: this.maxColumns,
+                        exportAll: this.exportAll
                     });
                 }));
     }

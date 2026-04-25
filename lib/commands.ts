@@ -354,9 +354,9 @@ export function exportAllRiversToCanvasCommand(app: App) {
 
 export function exportFilteredRiversToCanvasCommand(app: App) {
     new ExportFilterModal(app, async (result) => {
-        let { directory, tag, link, property, width, height, maxColumns } = result;
-        if (!directory && !tag && !link) {
-            new Notice("Please provide at least one filter criterion.");
+        let { directory, tag, link, property, width, height, maxColumns, exportAll } = result;
+        if (!exportAll && !directory && !tag && !link) {
+            new Notice("Please provide at least one filter criterion or check 'Search all elements'.");
             return;
         }
 
@@ -370,53 +370,57 @@ export function exportFilteredRiversToCanvasCommand(app: App) {
         }
 
         const allFiles = app.vault.getMarkdownFiles();
-        const matchedFiles: TFile[] = [];
+        let matchedFiles: TFile[] = [];
 
-        for (const file of allFiles) {
-            let match = true;
+        if (exportAll) {
+            matchedFiles = allFiles;
+        } else {
+            for (const file of allFiles) {
+                let match = true;
 
-            if (directory && !file.path.includes(directory)) {
-                match = false;
-            }
+                if (directory && !file.path.includes(directory)) {
+                    match = false;
+                }
 
-            if (match && (tag || link)) {
-                const cache = app.metadataCache.getFileCache(file);
-                
-                if (tag) {
-                    const fileTags = cache?.tags?.map(t => t.tag) || [];
-                    const frontmatterTagsFromCache = cache?.frontmatter?.tags;
+                if (match && (tag || link)) {
+                    const cache = app.metadataCache.getFileCache(file);
                     
-                    let fmTags: string[] = [];
-                    if (Array.isArray(frontmatterTagsFromCache)) {
-                        fmTags = frontmatterTagsFromCache;
-                    } else if (typeof frontmatterTagsFromCache === 'string') {
-                        fmTags = frontmatterTagsFromCache.split(",").map(t => t.trim());
+                    if (tag) {
+                        const fileTags = cache?.tags?.map(t => t.tag) || [];
+                        const frontmatterTagsFromCache = cache?.frontmatter?.tags;
+                        
+                        let fmTags: string[] = [];
+                        if (Array.isArray(frontmatterTagsFromCache)) {
+                            fmTags = frontmatterTagsFromCache;
+                        } else if (typeof frontmatterTagsFromCache === 'string') {
+                            fmTags = frontmatterTagsFromCache.split(",").map(t => t.trim());
+                        }
+
+                        const allTags = [...fileTags, ...fmTags.map(t => t.startsWith("#") ? t : "#" + t)];
+
+                        const hasTag = allTags.some(t => t === tag || t.startsWith(tag + "/"));
+                        if (!hasTag) match = false;
                     }
 
-                    const allTags = [...fileTags, ...fmTags.map(t => t.startsWith("#") ? t : "#" + t)];
-
-                    const hasTag = allTags.some(t => t === tag || t.startsWith(tag + "/"));
-                    if (!hasTag) match = false;
-                }
-
-                if (match && link) {
-                    if (property) {
-                        const fileFrontmatterLinks = cache?.frontmatterLinks?.filter(l => l.key === property) || [];
-                        const hasLink = fileFrontmatterLinks.some(l => l.link.includes(link));
-                        if (!hasLink) match = false;
-                    } else {
-                        const fileLinks = cache?.links?.map(l => l.link) || [];
-                        const fileEmbeds = cache?.embeds?.map(e => e.link) || [];
-                        const fileFrontmatterLinks = cache?.frontmatterLinks?.map(l => l.link) || [];
-                        const allLinks = [...fileLinks, ...fileEmbeds, ...fileFrontmatterLinks];
-                        const hasLink = allLinks.some(l => l.includes(link));
-                        if (!hasLink) match = false;
+                    if (match && link) {
+                        if (property) {
+                            const fileFrontmatterLinks = cache?.frontmatterLinks?.filter(l => l.key === property) || [];
+                            const hasLink = fileFrontmatterLinks.some(l => l.link.includes(link));
+                            if (!hasLink) match = false;
+                        } else {
+                            const fileLinks = cache?.links?.map(l => l.link) || [];
+                            const fileEmbeds = cache?.embeds?.map(e => e.link) || [];
+                            const fileFrontmatterLinks = cache?.frontmatterLinks?.map(l => l.link) || [];
+                            const allLinks = [...fileLinks, ...fileEmbeds, ...fileFrontmatterLinks];
+                            const hasLink = allLinks.some(l => l.includes(link));
+                            if (!hasLink) match = false;
+                        }
                     }
                 }
-            }
 
-            if (match) {
-                matchedFiles.push(file);
+                if (match) {
+                    matchedFiles.push(file);
+                }
             }
         }
 
