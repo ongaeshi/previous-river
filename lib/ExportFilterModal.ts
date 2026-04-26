@@ -64,7 +64,7 @@ export class ExportFilterModal extends Modal {
                 .onChange(value => this.property = value));
 
         new Setting(contentEl)
-            .setName("Search all elements (すべての要素を探索する)")
+            .setName("Search all elements")
             .setDesc("Ignore filters above and export all connected notes")
             .addToggle(toggle => toggle
                 .setValue(this.exportAll)
@@ -77,21 +77,21 @@ export class ExportFilterModal extends Modal {
                 }));
 
         new Setting(contentEl)
-            .setName("Width (横幅)")
+            .setName("Width")
             .setDesc("Default: 400")
             .addText(text => text
                 .setValue(this.width)
                 .onChange(value => this.width = value));
 
         new Setting(contentEl)
-            .setName("Height (縦幅)")
+            .setName("Height")
             .setDesc("Default: 500")
             .addText(text => text
                 .setValue(this.height)
                 .onChange(value => this.height = value));
 
         new Setting(contentEl)
-            .setName("Max Columns (折り返し数)")
+            .setName("Max Columns")
             .setDesc("Default: 5")
             .addText(text => text
                 .setValue(this.maxColumns)
@@ -103,10 +103,10 @@ export class ExportFilterModal extends Modal {
                 .setCta()
                 .onClick(() => {
                     this.close();
-                    this.onSubmit({ 
-                        directory: this.directory, 
-                        tag: this.tag, 
-                        link: this.link, 
+                    this.onSubmit({
+                        directory: this.directory,
+                        tag: this.tag,
+                        link: this.link,
                         property: this.property,
                         width: this.width,
                         height: this.height,
