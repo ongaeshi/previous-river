@@ -45,11 +45,11 @@ export class ExportFilterModal extends Modal {
             .addText(text => text
                 .onChange(value => this.directory = value));
 
-        const tagSetting = new Setting(contentEl)
-            .setName("Tag")
-            .setDesc("Export notes containing this tag (e.g., #idea)")
+        const propSetting = new Setting(contentEl)
+            .setName("Property")
+            .setDesc("Use with Link: Only search links in this property")
             .addText(text => text
-                .onChange(value => this.tag = value));
+                .onChange(value => this.property = value));
 
         const linkSetting = new Setting(contentEl)
             .setName("Link")
@@ -57,11 +57,11 @@ export class ExportFilterModal extends Modal {
             .addText(text => text
                 .onChange(value => this.link = value));
 
-        const propSetting = new Setting(contentEl)
-            .setName("Property")
-            .setDesc("Use with Link: Only search links in this property")
+        const tagSetting = new Setting(contentEl)
+            .setName("Tag")
+            .setDesc("Export notes containing this tag (e.g., #idea)")
             .addText(text => text
-                .onChange(value => this.property = value));
+                .onChange(value => this.tag = value));
 
         new Setting(contentEl)
             .setName("Search all elements")
