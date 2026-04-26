@@ -442,13 +442,21 @@ export function exportFilteredRiversToCanvasCommand(app: App) {
             return;
         }
 
+        const reverseCache = buildReverseCache(app);
+
         const roots = new Set<TFile>();
         for (const file of matchedFiles) {
+            const prev = getPreviousNote(app, file);
+            const nexts = getNextNotesWithCache(app, file, reverseCache);
+            
+            // Skip isolated notes that do not belong to any river
+            if (!prev && nexts.length === 0) {
+                continue;
+            }
+
             const root = findFirstNote(app, file);
             roots.add(root);
         }
-
-        const reverseCache = buildReverseCache(app);
         
         const numWidth = parseInt(width);
         const numHeight = parseInt(height);
