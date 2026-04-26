@@ -386,17 +386,30 @@ export function exportFilteredRiversToCanvasCommand(app: App) {
                     const cache = app.metadataCache.getFileCache(file);
                     
                     if (tag) {
-                        const fileTags = cache?.tags?.map(t => t.tag) || [];
-                        const frontmatterTagsFromCache = cache?.frontmatter?.tags;
-                        
-                        let fmTags: string[] = [];
-                        if (Array.isArray(frontmatterTagsFromCache)) {
-                            fmTags = frontmatterTagsFromCache;
-                        } else if (typeof frontmatterTagsFromCache === 'string') {
-                            fmTags = frontmatterTagsFromCache.split(",").map(t => t.trim());
-                        }
+                        let allTags: string[] = [];
 
-                        const allTags = [...fileTags, ...fmTags.map(t => t.startsWith("#") ? t : "#" + t)];
+                        if (property) {
+                            const propertyValue = cache?.frontmatter?.[property];
+                            let propertyTags: string[] = [];
+                            if (Array.isArray(propertyValue)) {
+                                propertyTags = propertyValue.map(t => String(t).trim());
+                            } else if (typeof propertyValue === 'string') {
+                                propertyTags = propertyValue.split(",").map(t => t.trim());
+                            }
+                            allTags = propertyTags.map(t => t.startsWith("#") ? t : "#" + t);
+                        } else {
+                            const fileTags = cache?.tags?.map(t => t.tag) || [];
+                            const frontmatterTagsFromCache = cache?.frontmatter?.tags;
+                            
+                            let fmTags: string[] = [];
+                            if (Array.isArray(frontmatterTagsFromCache)) {
+                                fmTags = frontmatterTagsFromCache;
+                            } else if (typeof frontmatterTagsFromCache === 'string') {
+                                fmTags = frontmatterTagsFromCache.split(",").map(t => t.trim());
+                            }
+
+                            allTags = [...fileTags, ...fmTags.map(t => t.startsWith("#") ? t : "#" + t)];
+                        }
 
                         const hasTag = allTags.some(t => t === tag || t.startsWith(tag + "/"));
                         if (!hasTag) match = false;

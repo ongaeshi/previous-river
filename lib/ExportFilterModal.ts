@@ -47,7 +47,7 @@ export class ExportFilterModal extends Modal {
 
         const propSetting = new Setting(contentEl)
             .setName("Property")
-            .setDesc("Use with Link: Only search links in this property")
+            .setDesc("Use with Link or Tag: Only search in this property")
             .addText(text => text
                 .onChange(value => this.property = value));
 
