@@ -28,14 +28,22 @@ export function randomId(): string {
     return Math.random().toString(36).substring(2, 18);
 }
 
+export interface CanvasGeneratorOptions {
+    width?: number;
+    height?: number;
+    maxColumns?: number;
+}
+
 export class CanvasGenerator {
     nodes: CanvasNode[] = [];
     edges: CanvasEdge[] = [];
     fileToNodeId = new Map<string, string>();
     maxUsedY = 0;
-    MAX_COLUMNS = 5;
+    MAX_COLUMNS: number;
 
-    constructor(private app: App, private reverseCache: Record<string, string[]>) { }
+    constructor(private app: App, private reverseCache: Record<string, string[]>, private options?: CanvasGeneratorOptions) {
+        this.MAX_COLUMNS = options?.maxColumns || 5;
+    }
 
     dfs(current: TFile, col: number, y: number, direction: number): string {
         const existingNodeId = this.fileToNodeId.get(current.path);
@@ -46,14 +54,19 @@ export class CanvasGenerator {
         const nodeId = randomId();
         this.fileToNodeId.set(current.path, nodeId);
 
+        const width = this.options?.width || 400;
+        const height = this.options?.height || 500;
+        const xStep = width + 100;
+        const yStep = height + 100;
+
         this.nodes.push({
             id: nodeId,
             type: "file",
             file: current.path,
-            x: col * 500,
+            x: col * xStep,
             y: y,
-            width: 400,
-            height: 500
+            width: width,
+            height: height
         });
 
         if (y > this.maxUsedY) {
@@ -69,14 +82,14 @@ export class CanvasGenerator {
             if (first) {
                 first = false;
             } else {
-                this.maxUsedY += 600;
+                this.maxUsedY += yStep;
                 nextY = this.maxUsedY;
             }
 
             let isWrapped = false;
             if (nextCol >= this.MAX_COLUMNS) {
                 nextCol = 0;
-                nextY += 600;
+                nextY += yStep;
                 if (nextY > this.maxUsedY) this.maxUsedY = nextY;
                 isWrapped = true;
             }

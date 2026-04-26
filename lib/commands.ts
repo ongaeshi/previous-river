@@ -3,6 +3,7 @@ import { ConfirmModal } from "./ConfirmModal";
 import { NextNoteSuggestModal } from "./NextNoteSuggestModal";
 import { getActiveFile, getPreviousNote, getNextNotes, getNextNotesWithCache, buildReverseCache, detachNote, setPreviousProperty, findLastNote, findFirstNote, isOnSamePath } from "./obsidian";
 import { CanvasGenerator, saveCanvasData } from "./canvas";
+import { ExportFilterModal } from "./ExportFilterModal";
 
 export async function goToPreviousNoteCommand(app: App) {
     const file = getActiveFile(app);
@@ -349,4 +350,145 @@ export function exportAllRiversToCanvasCommand(app: App) {
             void generateAllRiversCanvas(app);
         }
     ).open();
+}
+
+export function exportFilteredRiversToCanvasCommand(app: App) {
+    new ExportFilterModal(app, async (result) => {
+        let { directory, tag, link, property, width, height, maxColumns, exportAll } = result;
+        if (!exportAll && !directory && !tag && !link) {
+            new Notice("Please provide at least one filter criterion or check 'Search all elements'.");
+            return;
+        }
+
+        tag = tag.trim();
+        link = link.trim();
+        directory = directory.trim();
+        property = property?.trim();
+
+        if (tag && !tag.startsWith("#")) {
+            tag = "#" + tag;
+        }
+
+        const allFiles = app.vault.getMarkdownFiles();
+        let matchedFiles: TFile[] = [];
+
+        if (exportAll) {
+            matchedFiles = allFiles;
+        } else {
+            for (const file of allFiles) {
+                let match = true;
+
+                if (directory && !file.path.includes(directory)) {
+                    match = false;
+                }
+
+                if (match && (tag || link)) {
+                    const cache = app.metadataCache.getFileCache(file);
+                    
+                    if (tag) {
+                        let allTags: string[] = [];
+
+                        if (property) {
+                            const propertyValue = cache?.frontmatter?.[property];
+                            let propertyTags: string[] = [];
+                            if (Array.isArray(propertyValue)) {
+                                propertyTags = propertyValue.map(t => String(t).trim());
+                            } else if (typeof propertyValue === 'string') {
+                                propertyTags = propertyValue.split(",").map(t => t.trim());
+                            }
+                            allTags = propertyTags.map(t => t.startsWith("#") ? t : "#" + t);
+                        } else {
+                            const fileTags = cache?.tags?.map(t => t.tag) || [];
+                            const frontmatterTagsFromCache = cache?.frontmatter?.tags;
+                            
+                            let fmTags: string[] = [];
+                            if (Array.isArray(frontmatterTagsFromCache)) {
+                                fmTags = frontmatterTagsFromCache;
+                            } else if (typeof frontmatterTagsFromCache === 'string') {
+                                fmTags = frontmatterTagsFromCache.split(",").map(t => t.trim());
+                            }
+
+                            allTags = [...fileTags, ...fmTags.map(t => t.startsWith("#") ? t : "#" + t)];
+                        }
+
+                        const hasTag = allTags.some(t => t === tag || t.startsWith(tag + "/"));
+                        if (!hasTag) match = false;
+                    }
+
+                    if (match && link) {
+                        if (property) {
+                            const fileFrontmatterLinks = cache?.frontmatterLinks?.filter(l => l.key === property) || [];
+                            const hasLink = fileFrontmatterLinks.some(l => l.link.includes(link));
+                            if (!hasLink) match = false;
+                        } else {
+                            const fileLinks = cache?.links?.map(l => l.link) || [];
+                            const fileEmbeds = cache?.embeds?.map(e => e.link) || [];
+                            const fileFrontmatterLinks = cache?.frontmatterLinks?.map(l => l.link) || [];
+                            const allLinks = [...fileLinks, ...fileEmbeds, ...fileFrontmatterLinks];
+                            const hasLink = allLinks.some(l => l.includes(link));
+                            if (!hasLink) match = false;
+                        }
+                    }
+                }
+
+                if (match) {
+                    matchedFiles.push(file);
+                }
+            }
+        }
+
+        if (matchedFiles.length === 0) {
+            new Notice("No files matched the given criteria.");
+            return;
+        }
+
+        const reverseCache = buildReverseCache(app);
+
+        const roots = new Set<TFile>();
+        for (const file of matchedFiles) {
+            const prev = getPreviousNote(app, file);
+            const nexts = getNextNotesWithCache(app, file, reverseCache);
+            
+            // Skip isolated notes that do not belong to any river
+            if (!prev && nexts.length === 0) {
+                continue;
+            }
+
+            const root = findFirstNote(app, file);
+            roots.add(root);
+        }
+        
+        const numWidth = parseInt(width);
+        const numHeight = parseInt(height);
+        const numMaxColumns = parseInt(maxColumns);
+        
+        const generatorOptions = {
+            width: isNaN(numWidth) ? 400 : numWidth,
+            height: isNaN(numHeight) ? 500 : numHeight,
+            maxColumns: isNaN(numMaxColumns) ? 5 : numMaxColumns
+        };
+        
+        const generator = new CanvasGenerator(app, reverseCache, generatorOptions);
+        let currentY = 0;
+
+        for (const root of roots) {
+            if (generator.fileToNodeId.has(root.path)) continue;
+            
+            generator.dfs(root, 0, currentY, 1);
+            currentY = generator.maxUsedY + 1000;
+        }
+        
+        if (generator.nodes.length === 0) {
+             new Notice("No connected notes found for the matched files.");
+             return;
+        }
+
+        const activeFile = getActiveFile(app);
+        const sourcePath = activeFile ? activeFile.path : "";
+        const canvasName = "Filtered Connected Notes.canvas";
+        const saveDir = app.fileManager.getNewFileParent(sourcePath, "Filtered Connected Notes.md").path;
+
+        await saveCanvasData(app, generator.nodes, generator.edges, canvasName, saveDir);
+
+    }).open();
 }
