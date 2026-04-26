@@ -1,5 +1,8 @@
 # History
 
+## 0.4.1 (2026-04-26)
+- **Export filtered rivers to Canvas**: Add a command to export a customized subset of your note network to an Obsidian Canvas based on specific filters.
+
 ## 0.4.0 (2026-04-24)
 - **Export next notes to Canvas**: Add a command to export the entire tree structure of next notes derived from the current note to an Obsidian Canvas. Automatically detect loop structures and add a `🔄` icon to the originating note for visualization.
 - **Export all previous links to Canvas**: Add a command to analyze all `previous` property connections across the entire vault and export the full network as a Canvas file.
