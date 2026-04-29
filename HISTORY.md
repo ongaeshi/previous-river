@@ -1,5 +1,9 @@
 # History
 
+## 1.0.0 (2026-04-30)
+- **Stable Release**: Official 1.0.0 release. 
+- **Documentation & Safety**: Finalized and documented the `isAncestor` / `isOnSamePath` safety algorithms that prevent cycle references and protect note graph integrity.
+
 ## 0.4.1 (2026-04-26)
 - **Export filtered rivers to Canvas**: Add a command to export a customized subset of your note network to an Obsidian Canvas based on specific filters.
 
