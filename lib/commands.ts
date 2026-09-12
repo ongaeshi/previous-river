@@ -198,21 +198,6 @@ export async function duplicateNextNoteCommand(app: App) {
         return;
     }
 
-    // 1. Find successors of the current note
-    const successors = getNextNotes(app, file);
-
-    let targetNextNote: TFile | null = null;
-    if (successors.length === 1) {
-        targetNextNote = successors[0];
-    } else if (successors.length > 1) {
-        targetNextNote = await new Promise<TFile | null>((resolve) => {
-            new NextNoteSuggestModal(app, successors, resolve, "Select next note...").open();
-        });
-        if (!targetNextNote) {
-            return; // cancelled
-        }
-    }
-
     // 2. Duplicate the current note
     const parentFolder = file.parent;
     let parentPath = "";
@@ -236,34 +221,13 @@ export async function duplicateNextNoteCommand(app: App) {
     // 4. Set the new note's previous property to the original note
     await setPreviousProperty(app, newFile, file.basename);
 
-	// 5. If there was a targetNextNote, set its previous property to the new note
-	if (targetNextNote) {
-		await setPreviousProperty(app, targetNextNote, newFile.basename);
-		new Notice(`Duplicated note and inserted between ${file.basename} and ${targetNextNote.basename}`);
-	} else {
-		new Notice(`Duplicated note after ${file.basename}`);
-	}
+	new Notice(`Duplicated note after ${file.basename}`);
 }
 
 export async function createNextNoteCommand(app: App) {
 	const file = getActiveFile(app);
 	if (!file) {
 		return;
-	}
-
-	// 1. Find successors of the current note
-	const successors = getNextNotes(app, file);
-
-	let targetNextNote: TFile | null = null;
-	if (successors.length === 1) {
-		targetNextNote = successors[0];
-	} else if (successors.length > 1) {
-		targetNextNote = await new Promise<TFile | null>((resolve) => {
-			new NextNoteSuggestModal(app, successors, resolve, "Select next note...").open();
-		});
-		if (!targetNextNote) {
-			return; // cancelled
-		}
 	}
 
 	// 2. Create a new empty note
@@ -289,13 +253,7 @@ export async function createNextNoteCommand(app: App) {
 	// 4. Set the new note's previous property to the original note
 	await setPreviousProperty(app, newFile, file.basename);
 
-	// 5. If there was a targetNextNote, set its previous property to the new note
-	if (targetNextNote) {
-		await setPreviousProperty(app, targetNextNote, newFile.basename);
-		new Notice(`Created note and inserted between ${file.basename} and ${targetNextNote.basename}`);
-	} else {
-		new Notice(`Created note after ${file.basename}`);
-	}
+	new Notice(`Created note after ${file.basename}`);
 }
 
 

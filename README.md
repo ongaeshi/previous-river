@@ -84,7 +84,7 @@ This provides an easy overview on the Canvas. It also automatically detects loop
 - **Insert note to last**:
   Insert the selected note at the end of the current sequence.
 - **Duplicate next note**:
-  Duplicate the currently active note and automatically link it by setting the new note's `previous` property to the original note.
+  Duplicate the currently active note and automatically link it by setting the new note's `previous` property to the original note. (Note: To insert a note between existing notes, use the "Insert note" command instead.)
 - **Detach note**:
   Detach the current note from the sequence by setting its `previous` property to `ROOT`.
 - **Set ROOT to previous property**:
@@ -92,7 +92,7 @@ This provides an easy overview on the Canvas. It also automatically detects loop
 - **Set note to previous property**:
   Set an existing note to the current note's `previous` property.
 - **Create next note**:
-  Create a new empty note and automatically set its `previous` property to the current note.
+  Create a new empty note and automatically set its `previous` property to the current note. (Note: To insert a note between existing notes, use the "Insert note" command instead.)
 - **Insert base to collect next notes**:
   Insert a code block to dynamically list all notes that point to the current note via the `previous` property.
 
