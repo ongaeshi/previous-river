@@ -14,10 +14,10 @@ export function insertBaseNextNotesCommand(app: App, editor: Editor, view: Markd
     const baseCode = `\`\`\`base
 views:
   - type: list
-    name: リスト
+    name: All
     filters:
       and:
-        - previous == link("${file.basename}")
+        - previous == link(this.file)
 \`\`\`
 `;
     const cursor = editor.getCursor();
