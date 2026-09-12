@@ -14,9 +14,38 @@ Alternatively, install it directly from [https://community.obsidian.md/plugins/p
 
 ## Features
 
-Previous River goes beyond simple link navigation and offers powerful features that utilize note continuity.
+Previous River uses the `previous` property to connect notes, allowing you to build two primary structures: **Sequential** and **Hierarchical**.
 
-### 1. Integration with the Properties view
+### Two Ways to Structure Your Notes
+
+#### 1. Sequential Notes (Classic)
+Connect notes in a continuous sequence by linking each note to its predecessor. This is ideal for journals, step-by-step guides, or a chain of thought.
+
+```mermaid
+flowchart RL
+    B[Note 2] -- previous --> A[Note 1]
+    C[Note 3] -- previous --> B[Note 2]
+    D[Note 4] -- previous --> C[Note 3]
+```
+
+#### 2. Hierarchical Notes (New in 1.4)
+Create a parent-child structure by having multiple child notes point to a single parent note via the `previous` property. You can then use the `Insert base to collect next notes` command in the parent note to display a dynamically updated list of all its children.
+
+```mermaid
+flowchart BT
+    Parent["Parent Note<br>(Contains base block to list children)"]
+    Child1[Child Note 1]
+    Child2[Child Note 2]
+    Child3[Child Note 3]
+
+    Child1 -- previous --> Parent
+    Child2 -- previous --> Parent
+    Child3 -- previous --> Parent
+```
+
+### Other Core Features
+
+#### 1. Integration with the Properties view
 Easily navigate to previous and next notes directly from the Obsidian Properties view.
 
 A **next button** automatically appears on the right edge of the `previous` property row in the current note. Click it to intuitively advance to the next note.
@@ -25,7 +54,7 @@ To return to the previous note, click the link set in the `previous` property.
 
 ![integration-with-property-view](https://github.com/user-attachments/assets/59da2149-82eb-4fee-b993-5d75528595b0)
 
-### 2. Export networks to Canvas
+#### 2. Export networks to Canvas
 You can **export connected notes to an Obsidian Canvas** as a visual tree structure.
 - The tree of all "next notes" branching from the current note
 - All rivers (sequences) across the entire Vault
@@ -55,11 +84,17 @@ This provides an easy overview on the Canvas. It also automatically detects loop
 - **Insert note to last**:
   Insert the selected note at the end of the current sequence.
 - **Duplicate next note**:
-  Duplicate the currently active note and automatically link it by setting the new note's `previous` property to the original note.
+  Duplicate the currently active note and automatically link it by setting the new note's `previous` property to the original note. (Note: To insert a note between existing notes, use the "Insert note" command instead.)
 - **Detach note**:
   Detach the current note from the sequence by setting its `previous` property to `ROOT`.
 - **Set ROOT to previous property**:
   Quickly set the `previous` property of the active note to `ROOT`.
+- **Set note to previous property**:
+  Set an existing note to the current note's `previous` property.
+- **Create next note**:
+  Create a new empty note and automatically set its `previous` property to the current note. (Note: To insert a note between existing notes, use the "Insert note" command instead.)
+- **Insert base to collect next notes**:
+  Insert a code block to dynamically list all notes that point to the current note via the `previous` property.
 
 ### Export and sharing
 - **Copy next notes list**:

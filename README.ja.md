@@ -15,9 +15,38 @@ Obsidian の「設定」をクリックし、「コミュニティプラグイ�
 
 ## 特徴
 
-Previous River は単なるリンク移動プラグインに留まらず、ノートの連続性を活かす強力な機能を備えています。
+Previous River は `previous` プロパティを使ってノート同士を繋ぎ、主に **シーケンシャル（数珠繋ぎ）** と **階層構造** の2つの構造を構築できます。
 
-### 1. プロパティビューとの統合
+### ノートを構造化する2つの方法
+
+#### 1. シーケンシャル（数珠繋ぎ）構造 (従来)
+ノートを前のノートにリンクすることで、連続したシーケンスを作成します。ジャーナルや手順書、思考の連なりなどに最適です。
+
+```mermaid
+flowchart RL
+    B[Note 2] -- previous --> A[Note 1]
+    C[Note 3] -- previous --> B[Note 2]
+    D[Note 4] -- previous --> C[Note 3]
+```
+
+#### 2. 階層構造 (1.4からの新機能)
+複数の子ノートが `previous` プロパティを介して1つの親ノートを指すことで、親子構造を作成します。親ノート側で `Insert base to collect next notes` コマンドを使用することで、子ノートの一覧を動的に表示できます。
+
+```mermaid
+flowchart BT
+    Parent["Parent Note<br>(Contains base block to list children)"]
+    Child1[Child Note 1]
+    Child2[Child Note 2]
+    Child3[Child Note 3]
+
+    Child1 -- previous --> Parent
+    Child2 -- previous --> Parent
+    Child3 -- previous --> Parent
+```
+
+### その他の主要機能
+
+#### 1. プロパティビューとの統合
 Obsidian のプロパティビューから簡単に前後のノートに移動することができます。
 
 現在のノートの `previous` プロパティ行の右端に **「next」ボタン** が自動的に表示され、クリックするだけで直感的に次のノートへと進むことができます。
@@ -26,7 +55,7 @@ Obsidian のプロパティビューから簡単に前後のノートに移動�
 
 ![integration-with-property-view](https://github.com/user-attachments/assets/59da2149-82eb-4fee-b993-5d75528595b0)
 
-### 2. Canvas へのネットワーク書き出し
+#### 2. Canvas へのネットワーク書き出し
 繋がっているノート群をビジュアルなツリー構造として **Obsidian Canvas に書き出す** ことができます。
 - 現在のノートから派生するすべての「次のノート」のツリー
 - Vault 全体のすべての川（シーケンス）
@@ -56,11 +85,17 @@ Obsidian のプロパティビューから簡単に前後のノートに移動�
 - **Insert note to last** (末尾に挿入):
   選択したノートを現在のシーケンスの末尾に挿入します。
 - **Duplicate next note** (次のノートとして複製):
-  現在アクティブなノートを複製し、新しいノートの `previous` プロパティを元のノートに自動的に設定して繋げます。
+  現在アクティブなノートを複製し、新しいノートの `previous` プロパティを元のノートに自動的に設定して繋げます。（※既存のノート間に挿入したい場合は、代わりに「Insert note」コマンドを使用してください。）
 - **Detach note** (ノートの切り離し):
   現在のノートの `previous` プロパティを `ROOT` に設定することで、シーケンスから切り離します。
 - **Set ROOT to previous property** (ROOT の設定):
   アクティブなノートの `previous` プロパティに `ROOT` をすばやく設定します。
+- **Set note to previous property** (前のノートとして設定):
+  選択した既存のノートを、現在のノートの `previous` プロパティに設定します。
+- **Create next note** (次のノートを作成):
+  新しい空のノートを作成し、その `previous` プロパティに現在のノートを自動的に設定します。（※既存のノート間に挿入したい場合は、代わりに「Insert note」コマンドを使用してください。）
+- **Insert base to collect next notes** (次のノートを収集するbaseブロックを挿入):
+  現在のノートを `previous` に設定しているノートの一覧を動的に表示するためのコードブロックを挿入します。
 
 ### エクスポートと共有
 - **Copy next notes list** (次のノート一覧をコピー):

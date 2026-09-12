@@ -1,9 +1,35 @@
-import { App, TFile, Notice } from "obsidian";
+import { App, TFile, Notice, Editor, MarkdownView } from "obsidian";
 import { ConfirmModal } from "./ConfirmModal";
 import { NextNoteSuggestModal } from "./NextNoteSuggestModal";
 import { getActiveFile, getPreviousNote, getNextNotes, getNextNotesWithCache, buildReverseCache, detachNote, setPreviousProperty, findLastNote, findFirstNote, isOnSamePath, hasPreviousProperty } from "./obsidian";
 import { CanvasGenerator, saveCanvasData } from "./canvas";
 import { ExportFilterModal } from "./ExportFilterModal";
+
+export function insertBaseNextNotesCommand(app: App, editor: Editor, view: MarkdownView) {
+    const file = getActiveFile(app);
+    if (!file) {
+        return;
+    }
+
+    const baseCode = `\`\`\`base
+views:
+  - type: list
+    name: All
+    filters:
+      and:
+        - previous == link(this.file)
+\`\`\`
+`;
+    const cursor = editor.getCursor();
+    editor.replaceRange(baseCode, cursor);
+    
+    // Move cursor past the inserted code block
+    editor.setCursor({
+        line: cursor.line + 8,
+        ch: 0
+    });
+}
+
 
 export async function goToPreviousNoteCommand(app: App) {
     const file = getActiveFile(app);
@@ -172,21 +198,6 @@ export async function duplicateNextNoteCommand(app: App) {
         return;
     }
 
-    // 1. Find successors of the current note
-    const successors = getNextNotes(app, file);
-
-    let targetNextNote: TFile | null = null;
-    if (successors.length === 1) {
-        targetNextNote = successors[0];
-    } else if (successors.length > 1) {
-        targetNextNote = await new Promise<TFile | null>((resolve) => {
-            new NextNoteSuggestModal(app, successors, resolve, "Select next note...").open();
-        });
-        if (!targetNextNote) {
-            return; // cancelled
-        }
-    }
-
     // 2. Duplicate the current note
     const parentFolder = file.parent;
     let parentPath = "";
@@ -210,13 +221,39 @@ export async function duplicateNextNoteCommand(app: App) {
     // 4. Set the new note's previous property to the original note
     await setPreviousProperty(app, newFile, file.basename);
 
-    // 5. If there was a targetNextNote, set its previous property to the new note
-    if (targetNextNote) {
-        await setPreviousProperty(app, targetNextNote, newFile.basename);
-        new Notice(`Duplicated note and inserted between ${file.basename} and ${targetNextNote.basename}`);
-    } else {
-        new Notice(`Duplicated note after ${file.basename}`);
-    }
+	new Notice(`Duplicated note after ${file.basename}`);
+}
+
+export async function createNextNoteCommand(app: App) {
+	const file = getActiveFile(app);
+	if (!file) {
+		return;
+	}
+
+	// 2. Create a new empty note
+	const parentFolder = file.parent;
+	let parentPath = "";
+	if (parentFolder && parentFolder.path !== "/") {
+		parentPath = parentFolder.path + "/";
+	}
+	let newName = `${file.basename} 1`;
+	let newPath = `${parentPath}${newName}.${file.extension}`;
+	let counter = 1;
+	while (app.vault.getAbstractFileByPath(newPath)) {
+		counter++;
+		newName = `${file.basename} ${counter}`;
+		newPath = `${parentPath}${newName}.${file.extension}`;
+	}
+
+	const newFile = await app.vault.create(newPath, "") as TFile;
+
+	// 3. Open the newly created note
+	await app.workspace.getLeaf().openFile(newFile);
+
+	// 4. Set the new note's previous property to the original note
+	await setPreviousProperty(app, newFile, file.basename);
+
+	new Notice(`Created note after ${file.basename}`);
 }
 
 
@@ -580,4 +617,27 @@ export async function setRootCommand(app: App) {
     });
 
     new Notice(`Set ROOT to previous property of ${file.basename}`);
+}
+
+export async function setNoteToPreviousPropertyCommand(app: App) {
+    const file = getActiveFile(app);
+    if (!file) {
+        return;
+    }
+
+    const selectedNote = await new Promise<TFile | null>((resolve) => {
+        new NextNoteSuggestModal(app, getSortedMarkdownFiles(app), resolve, "Select previous note...").open();
+    });
+
+    if (!selectedNote) {
+        return;
+    }
+
+    if (file === selectedNote) {
+        new Notice("Cannot set the note itself as previous.");
+        return;
+    }
+
+    await setPreviousProperty(app, file, selectedNote.basename);
+    new Notice(`Set ${selectedNote.basename} to previous property of ${file.basename}`);
 }

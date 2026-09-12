@@ -1,5 +1,12 @@
 # History
 
+## 1.4.0 (2026-09-10)
+- **Hierarchical structure support**: Introduced support for hierarchical structures where multiple child notes point to a single parent note via the `previous` property.
+- **Insert base to collect next notes**: Added a command to insert a `base` code block into the parent note to dynamically list its child notes.
+- **Set note to previous property**: Added a command to set an existing note to the current note's `previous` property.
+- **Create next note**: Added a command to create a new empty note and automatically set its `previous` property to the current note. (Note: This command now solely adds a new note. It no longer inserts the note between existing ones. To insert a note, please use the `Insert note` command after creating it.)
+- **Duplicate next note**: Updated the behavior to no longer insert the duplicated note between existing ones, aligning with the hierarchical structure support.
+
 ## 1.3.0 (2026-05-29)
 - **Filtered canvas export**: Add custom filename input for filtered canvas export.
 - **Export canvas improvements**: Include notes with an empty `previous` property in exports, and allow exporting isolated notes with a `previous` property to canvas.
